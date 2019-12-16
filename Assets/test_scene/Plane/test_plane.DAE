@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<COLLADA xmlns="http://www.collada.org/2005/11/COLLADASchema" version="1.4.1">
+  <asset><contributor><author></author><authoring_tool>FBX COLLADA exporter</authoring_tool><comments></comments></contributor><created>2019-11-11T16:29:32Z</created><keywords></keywords><modified>2019-11-11T16:29:32Z</modified><revision></revision><subject></subject><title></title><unit meter="0.025400" name="centimeter"></unit><up_axis>Y_UP</up_axis></asset>
+  <library_images>
+    <image id="file1-image" name="file1"><init_from>file://E:\github_project\blender_fork\blender\build\bin\Debug\cycles_scene\test_uv_image.jpg</init_from></image>
+  </library_images>
+  <library_materials>
+    <material id="lambert3" name="lambert3">
+      <instance_effect url="#lambert3-fx"/>
+    </material>
+  </library_materials>
+  <library_effects>
+    <effect id="lambert3-fx" name="lambert3">
+      <profile_COMMON>
+        <technique sid="standard">
+          <phong>
+            <emission>
+              <color sid="emission">0.000000  0.000000 0.000000 1.000000</color>
+            </emission>
+            <ambient>
+              <color sid="ambient">0.000000  0.000000 0.000000 1.000000</color>
+            </ambient>
+            <diffuse>
+              <texture texture="file1-image" texcoord="CHANNEL0">
+                <extra>
+                  <technique profile="MAYA">
+                    <wrapU sid="wrapU0">TRUE</wrapU>
+                    <wrapV sid="wrapV0">TRUE</wrapV>
+                    <blend_mode>ADD</blend_mode>
+                  </technique>
+                </extra>
+              </texture>
+            </diffuse>
+            <specular>
+              <color sid="specular">0.000000  0.000000 0.000000 1.000000</color>
+            </specular>
+            <shininess>
+              <float sid="shininess">1.071773</float>
+            </shininess>
+            <reflective>
+              <color sid="reflective">0.000000  0.000000 0.000000 1.000000</color>
+            </reflective>
+            <reflectivity>
+              <float sid="reflectivity">1.000000</float>
+            </reflectivity>
+            <transparent opaque="RGB_ZERO">
+              <color sid="transparent">1.000000  1.000000 1.000000 1.000000</color>
+            </transparent>
+            <transparency>
+              <float sid="transparency">0.000000</float>
+            </transparency>
+          </phong>
+        </technique>
+      </profile_COMMON>
+    </effect>
+  </library_effects>
+  <library_geometries>
+    <geometry id="pPlane1-lib" name="pPlane1Mesh">
+      <mesh>
+        <source id="pPlane1-POSITION">
+          <float_array id="pPlane1-POSITION-array" count="12">
+-0.500000 -0.000000 0.500000
+0.500000 -0.000000 0.500000
+-0.500000 0.000000 -0.500000
+0.500000 0.000000 -0.500000
+</float_array>
+          <technique_common>
+            <accessor source="#pPlane1-POSITION-array" count="4" stride="3">
+              <param name="X" type="float"/>
+              <param name="Y" type="float"/>
+              <param name="Z" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <source id="pPlane1-Normal0">
+          <float_array id="pPlane1-Normal0-array" count="18">
+0.000000 1.000000 0.000000
+0.000000 1.000000 0.000000
+0.000000 1.000000 0.000000
+0.000000 1.000000 0.000000
+0.000000 1.000000 0.000000
+0.000000 1.000000 0.000000
+</float_array>
+          <technique_common>
+            <accessor source="#pPlane1-Normal0-array" count="6" stride="3">
+              <param name="X" type="float"/>
+              <param name="Y" type="float"/>
+              <param name="Z" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <source id="pPlane1-UV0">
+          <float_array id="pPlane1-UV0-array" count="8">
+0.000000 0.000000
+1.000000 0.000000
+0.000000 1.000000
+1.000000 1.000000
+</float_array>
+          <technique_common>
+            <accessor source="#pPlane1-UV0-array" count="4" stride="2">
+              <param name="S" type="float"/>
+              <param name="T" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <source id="pPlane1-UV1">
+          <float_array id="pPlane1-UV1-array" count="8">
+0.060000 0.060000
+0.940000 0.060000
+0.060000 0.940000
+0.940000 0.940000
+</float_array>
+          <technique_common>
+            <accessor source="#pPlane1-UV1-array" count="4" stride="2">
+              <param name="S" type="float"/>
+              <param name="T" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <vertices id="pPlane1-VERTEX">
+          <input semantic="POSITION" source="#pPlane1-POSITION"/>
+        </vertices>
+        <triangles count="2" material="lambert3"><input semantic="VERTEX" offset="0" source="#pPlane1-VERTEX"/><input semantic="NORMAL" offset="1" source="#pPlane1-Normal0"/><input semantic="TEXCOORD" offset="2" set="0" source="#pPlane1-UV0"/><input semantic="TEXCOORD" offset="3" set="1" source="#pPlane1-UV1"/><p> 1 0 1 1 3 1 3 3 0 2 0 0 0 3 0 0 3 4 3 3 2 5 2 2</p></triangles>
+      </mesh>
+    </geometry>
+  </library_geometries>
+  <library_visual_scenes>
+    <visual_scene id="test_plane" name="test_plane">
+      <node name="pPlane1" id="pPlane1" sid="pPlane1"><matrix sid="matrix">4.104143 0.000000 0.000000 0.000000 0.000000 1.000000 -0.000001 0.000000 0.000000 0.000000 4.104143 0.000000 0.000000 0.000000 0.000000 1.000000</matrix><instance_geometry url="#pPlane1-lib"><bind_material><technique_common><instance_material symbol="lambert3" target="#lambert3"/></technique_common></bind_material></instance_geometry><extra><technique profile="FCOLLADA"><visibility>1.000000</visibility></technique></extra></node>
+      <extra><technique profile="MAX3D"><frame_rate>30.000000</frame_rate></technique><technique profile="FCOLLADA"><start_time>0.000000</start_time><end_time>3.333333</end_time></technique></extra>
+    </visual_scene>
+  </library_visual_scenes>
+  <scene>
+    <instance_visual_scene url="#test_plane"></instance_visual_scene>
+  </scene>
+</COLLADA>

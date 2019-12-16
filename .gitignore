@@ -1,0 +1,7 @@
+Library
+obj
+/Assets/Plugins/*.pdb
+/Assets/Plugins/*.ilk
+Temp
+.vs
+/Assets/Plugins/cycles.dll
