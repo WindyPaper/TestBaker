@@ -20,6 +20,9 @@ public class NewBehaviourScript : MonoBehaviour
 
     delegate int bake_lightmap();
 
+    public delegate void RenderImageCb([MarshalAs(UnmanagedType.LPArray, SizeConst = 16777216/*4096X4096*/)][In]float[] image_array, [MarshalAs(UnmanagedType.I4)] [In]int w, [MarshalAs(UnmanagedType.I4)] [In]int h);
+    delegate int interactive_pt_rendering([MarshalAs(UnmanagedType.FunctionPtr)]RenderImageCb pDelegate);
+
     void StartMission()
     {
         Debug.Log("Start...");
@@ -45,7 +48,8 @@ public class NewBehaviourScript : MonoBehaviour
 
         SetAllMeshToCycles();
 
-        BakeLightMap();
+        //BakeLightMap();
+        InteractiveRenderStart();
 
         Debug.Log("Finish...");
     }
@@ -69,7 +73,7 @@ public class NewBehaviourScript : MonoBehaviour
         string dll_full_name = dll_path + dll_file_name;
         Native.AddDllDirectory(dll_path);
         nativeLibraryPtr = Native.LoadLibraryEx(dll_full_name, IntPtr.Zero, flags);
-        
+
         if (nativeLibraryPtr == IntPtr.Zero)
         {
             Debug.LogError("Failed to load native library. Path = " + dll_full_name + " Last Error Code = " + Marshal.GetLastWin32Error());
@@ -88,7 +92,7 @@ public class NewBehaviourScript : MonoBehaviour
         //}
         //catch (System.Exception e)
         //{
-            //Debug.Log(e.Message);            
+        //Debug.Log(e.Message);            
         //}
     }
 
@@ -112,7 +116,7 @@ public class NewBehaviourScript : MonoBehaviour
     {
         List<MeshFilter> objs = GetAllObjectsInScene();
 
-        foreach(MeshFilter mf in objs)
+        foreach (MeshFilter mf in objs)
         {
             Transform t = mf.transform;
             Vector3 s = t.localScale;
@@ -126,7 +130,7 @@ public class NewBehaviourScript : MonoBehaviour
             {
                 Debug.LogError("No mesh!");
                 continue;
-            }            
+            }
 
             float[] vertex_array = new float[m.vertices.Length * 4];
             foreach (Vector3 vv in m.vertices)
@@ -139,7 +143,7 @@ public class NewBehaviourScript : MonoBehaviour
                 vertex_array[numVertices * 4 + 2] = -v.z;
                 vertex_array[numVertices * 4 + 3] = 1.0f;
 
-                numVertices++;                
+                numVertices++;
             }
             //sb.Append("\n");
             int numNormal = 0;
@@ -170,11 +174,11 @@ public class NewBehaviourScript : MonoBehaviour
             float[] lightmapuv_array = new float[m.uv.Length * 2]; //hack 防止没有lightmap崩溃
             int numLightmapuv = 0;
             if (m.uv2.Length > 0)
-            {                       
+            {
                 foreach (Vector3 v in m.uv2)
                 {
                     //sb.Append(string.Format("vt {0} {1}\n", v.x, v.y));
-                    if(v.x > 1.0f || v.x < -0.0001f)
+                    if (v.x > 1.0f || v.x < -0.0001f)
                     {
                         Debug.LogError("Uv error!");
                     }
@@ -196,7 +200,7 @@ public class NewBehaviourScript : MonoBehaviour
             int mat_num = mats.Length;
             string[] mat_name = new string[mat_num];
             string[] diffuse_tex_name = new string[mat_num];
-            for(int i = 0; i < mat_num; ++i)
+            for (int i = 0; i < mat_num; ++i)
             {
                 mat_name[i] = mats[i].name;
                 diffuse_tex_name[i] = Application.dataPath + "/../" + AssetDatabase.GetAssetPath(mats[i].mainTexture);
@@ -204,7 +208,7 @@ public class NewBehaviourScript : MonoBehaviour
             }
 
             //int mat_num = m.subMeshCount;
-            int triangle_num = 0;            
+            int triangle_num = 0;
             for (int material = 0; material < m.subMeshCount; material++)
             {
                 int[] triangles = m.GetTriangles(material);
@@ -214,17 +218,17 @@ public class NewBehaviourScript : MonoBehaviour
             int[] index_array = new int[triangle_num * 3];
             int[] index_mat_array = new int[triangle_num];
             Debug.Log("triangle_num num = " + triangle_num);
-            int index_i = 0;            
+            int index_i = 0;
             for (int material = 0; material < m.subMeshCount; material++)
             {
                 int[] triangles = m.GetTriangles(material);
-                
+
                 for (int i = 0; i < triangles.Length; i += 3)
                 {
                     //revert wind
-                    index_array[index_i * 3] = triangles[i+1];
-                    index_array[index_i * 3 + 1] = triangles[i+2];
-                    index_array[index_i * 3 + 2] = triangles[i+0];
+                    index_array[index_i * 3] = triangles[i + 1];
+                    index_array[index_i * 3 + 1] = triangles[i + 2];
+                    index_array[index_i * 3 + 2] = triangles[i + 0];
                     index_mat_array[index_i] = material;
 
                     ++index_i;
@@ -241,7 +245,21 @@ public class NewBehaviourScript : MonoBehaviour
     {
         Native.Invoke<int, bake_lightmap>(nativeLibraryPtr);
     }
-    
+
+    public void InteractiveRenderCb([MarshalAs(UnmanagedType.LPArray, SizeConst = 16777216/*4096X4096*/)][In]float[] image_array, [MarshalAs(UnmanagedType.I4)] [In]int w, [MarshalAs(UnmanagedType.I4)] [In]int h)
+    {
+        //Debug.Log(image_array[0]);
+        //float[] native_image_array = new float[w * h * 4];
+        //Byte[] b_data = (Byte[])Convert.ChangeType(image_array, typeof(Byte[]));
+        //Marshal.Copy(b_data, 0, native_image_array, w * h * 4);
+    }
+
+    void InteractiveRenderStart()
+    {
+        RenderImageCb cb = new RenderImageCb(InteractiveRenderCb);
+        Native.Invoke<int, interactive_pt_rendering>(nativeLibraryPtr, cb);
+    }
+
     void Update()
     {
        
