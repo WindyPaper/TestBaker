@@ -11,12 +11,12 @@ public static class Native
 {
     public static T Invoke<T, T2>(IntPtr library, params object[] pars)
     {
-        //IntPtr funcPtr = GetProcAddress(library, typeof(T2).Name);
-        //if (funcPtr == IntPtr.Zero)
-        //{
-        //    Debug.LogWarning("Could not gain reference to method address.");
-        //    return default(T);
-        //}
+        IntPtr funcPtr = GetProcAddress(library, typeof(T2).Name);
+        if (funcPtr == IntPtr.Zero)
+        {
+            Debug.LogWarning("Could not gain reference to method address. Function name = " + typeof(T2).Name);
+            //return default(T);
+        }
 
         var func = Marshal.GetDelegateForFunctionPointer(GetProcAddress(library, typeof(T2).Name), typeof(T2));
         return (T)func.DynamicInvoke(pars);

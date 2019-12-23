@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
+using System.Threading;
 
 public enum SampleCountOptions
 {
@@ -25,10 +26,12 @@ public class InteractivePTEditorWindow : ScriptableWizard
     bool interactive_rendering = false;
     bool select_sceneview_active_camera = true;
     Camera cam = null;
-    bool pressed = false;
+    //bool pressed = false;
     int sample_count = 128;
     SampleCountOptions sample_count_op;
     float render_progress = 0.1f;
+
+    DLLFunctionCaller dll_function_caller = null;
 
     void OnGUI()
     {
@@ -58,11 +61,13 @@ public class InteractivePTEditorWindow : ScriptableWizard
             interactive_rendering = !interactive_rendering;
             if(interactive_rendering)
             {
-                Debug.Log("Interactive Start!");                                
+                Debug.Log("Interactive Start!");
+                InteractiveRenderingStart();                
             }
             else
             {
                 Debug.Log("Interactive Stop!");
+                InteractiveRenderingEnd();                
             }
         }        
 
@@ -107,9 +112,34 @@ public class InteractivePTEditorWindow : ScriptableWizard
         return sample_count;
     }
 
-    void OnWizardCreate()
+    void InteractiveRenderingStart()
     {
-        Debug.Log("fst btn clk!");
+        dll_function_caller.Init();
+
+        dll_function_caller.SendAllMeshToCycles();
+
+        Thread t = new Thread(dll_function_caller.InteractiveRenderStart);
+        //dll_function_caller.InteractiveRenderStart();
+        t.Start();
+    }
+
+    void InteractiveRenderingEnd()
+    {
+        dll_function_caller.Release();
+    }
+
+
+    public void Awake()
+    {
+        if (dll_function_caller == null)
+        {
+            dll_function_caller = new DLLFunctionCaller();
+        }
+    }
+
+    void OnDestroy()
+    {
+        dll_function_caller.Release();
     }
 
     void OnWizardUpdate()
@@ -121,10 +151,5 @@ public class InteractivePTEditorWindow : ScriptableWizard
     {
         Debug.Log("OnHierarchyChange");
     }
-
-    // When the user pressed the "Apply" button OnWizardOtherButton is called.
-    void OnWizardOtherButton()
-    {
-        Debug.Log("Other btn clk!");
-    }
+    
 }

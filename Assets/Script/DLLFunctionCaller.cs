@@ -14,6 +14,8 @@ public class DLLFunctionCaller : MonoBehaviour
     delegate int bake_scene(int number, int multiplyBy);
     delegate bool init_cycles(int w, int h, [MarshalAs(UnmanagedType.LPStr)]string core_type);
 
+    delegate int release_cycles();
+
     delegate int unity_add_mesh(float[] vertex_array, float[] uvs_array, float[] lightmapuvs_array, float[] normal_array, int vertex_num,
         int[] index_array, int[] mat_index, int triangle_num,
         [MarshalAs(UnmanagedType.LPStr)]string[] mat_name, [MarshalAs(UnmanagedType.LPStr)]string[] diffuse_tex, int mat_num);
@@ -23,7 +25,7 @@ public class DLLFunctionCaller : MonoBehaviour
     public delegate void RenderImageCb(IntPtr image_array, [MarshalAs(UnmanagedType.I4)]int w, [MarshalAs(UnmanagedType.I4)]int h, int type);
     delegate int interactive_pt_rendering([MarshalAs(UnmanagedType.FunctionPtr)]RenderImageCb pDelegate);
 
-    void StartMission()
+    public void Init()
     {
         Debug.Log("Start...");
 
@@ -31,41 +33,46 @@ public class DLLFunctionCaller : MonoBehaviour
 
         InitCycles();
 
-        SetAllMeshToCycles();
+        //SendAllMeshToCycles();
 
-        BakeLightMap();
+        //BakeLightMap();
 
         Debug.Log("Finish...");
     }
 
+    public void Release()
+    {
+        if(nativeLibraryPtr == IntPtr.Zero)
+        {
+            return;
+        }
+
+        Native.Invoke<int, release_cycles>(nativeLibraryPtr);
+
+        UnloadDLL();
+    }
+
+
+
     void Awake()
     {
-        Debug.Log("Start...");
+        //Debug.Log("Start...");
 
-        LoadDLL();
+        //LoadDLL();
 
-        InitCycles();
+        //InitCycles();
 
-        SetAllMeshToCycles();
+        //SendAllMeshToCycles();
 
-        //BakeLightMap();
-        InteractiveRenderStart();
+        ////BakeLightMap();
+        //InteractiveRenderStart();
 
-        Debug.Log("Finish...");
+        //Debug.Log("Finish...");
     }
 
     void LoadDLL()
     {
         if (nativeLibraryPtr != IntPtr.Zero) return;
-
-        foreach (System.Diagnostics.ProcessModule mod in System.Diagnostics.Process.GetCurrentProcess().Modules)
-        {
-            if (mod.FileName.Contains("Plugins")) //windows path
-            {
-                Debug.Log(Native.FreeLibrary(mod.BaseAddress));
-                Debug.Log(mod.FileName);
-            }
-        }
 
         string dll_path = Application.dataPath + "/Plugins/";
         string dll_file_name = "cycles.dll";
@@ -87,6 +94,7 @@ public class DLLFunctionCaller : MonoBehaviour
 
         //try
         //{
+        Debug.Log("w = "+Screen.width+"h = "+Screen.height);
         bool result = Native.Invoke<bool, init_cycles>(nativeLibraryPtr, Screen.width, Screen.height, "CPU"); // Should return the number 15.
         Debug.Log(result);
         //}
@@ -112,7 +120,7 @@ public class DLLFunctionCaller : MonoBehaviour
         return objectsInScene;
     }
 
-    void SetAllMeshToCycles()
+    public void SendAllMeshToCycles()
     {
         List<MeshFilter> objs = GetAllObjectsInScene();
 
@@ -241,7 +249,7 @@ public class DLLFunctionCaller : MonoBehaviour
         }
     }
 
-    void BakeLightMap()
+    public void BakeLightMap()
     {
         Native.Invoke<int, bake_lightmap>(nativeLibraryPtr);
     }
@@ -260,7 +268,7 @@ public class DLLFunctionCaller : MonoBehaviour
         Debug.Log("r = " + native_image_array[0] + " g = " + native_image_array[1] + " b = " + native_image_array[2] + " a = " + native_image_array[3]);
     }
 
-    void InteractiveRenderStart()
+    public void InteractiveRenderStart()
     {
         RenderImageCb cb = new RenderImageCb(InteractiveRenderCb);
         Native.Invoke<int, interactive_pt_rendering>(nativeLibraryPtr, cb);
@@ -271,38 +279,22 @@ public class DLLFunctionCaller : MonoBehaviour
        
     }
 
-    public static void UnloadDLLAndExitThread()
+    public static void UnloadDLL()
     {
-        Debug.Log("FreeLibraryAndExitThread");
-        Native.FreeLibraryAndExitThread(nativeLibraryPtr, 0);        
+        if (nativeLibraryPtr == IntPtr.Zero) return;
+
+        if (Native.FreeLibrary(nativeLibraryPtr) == false)
+        {
+            Debug.LogError("Cycles DLL unloads fail!!");
+        }
+        else
+        {
+            nativeLibraryPtr = IntPtr.Zero;
+        }
     }
 
     void OnApplicationQuit()
     {
-        //if (nativeLibraryPtr == IntPtr.Zero) return;
-        Debug.Log("OnApplicationQuit");
-
-        //foreach (System.Diagnostics.ProcessModule mod in System.Diagnostics.Process.GetCurrentProcess().Modules)
-        //{
-        //    if(mod.FileName.Contains("Plugins")) //windows path
-        //    {
-        //        Debug.Log(Native.FreeLibrary(mod.BaseAddress));
-        //        Debug.Log(mod.FileName);
-        //    }                        
-        //}
-
-        //Make sure DLL is unload!
-        //while (Native.FreeLibrary(nativeLibraryPtr))
-        //{
-        //    Debug.Log("Free DLL!");
-        //}
-        Thread t = new Thread(UnloadDLLAndExitThread);
-        t.Start();
-        //UnloadDLLAndExitThread();
-
-        //if(Native.FreeLibrary(nativeLibraryPtr) == false)
-        //{
-        //    Debug.Log("Make sure DLL is unload!");
-        //}
+        
     }
 }
