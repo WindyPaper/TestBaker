@@ -7,7 +7,7 @@ using UnityEditor;
 using System.Reflection;
 using System.Threading;
 
-public class NewBehaviourScript : MonoBehaviour
+public class DLLFunctionCaller : MonoBehaviour
 {
     static IntPtr nativeLibraryPtr;
 
@@ -20,7 +20,7 @@ public class NewBehaviourScript : MonoBehaviour
 
     delegate int bake_lightmap();
 
-    public delegate void RenderImageCb([MarshalAs(UnmanagedType.LPArray, SizeConst = 16777216/*4096X4096*/)][In]float[] image_array, [MarshalAs(UnmanagedType.I4)] [In]int w, [MarshalAs(UnmanagedType.I4)] [In]int h);
+    public delegate void RenderImageCb(IntPtr image_array, [MarshalAs(UnmanagedType.I4)]int w, [MarshalAs(UnmanagedType.I4)]int h, int type);
     delegate int interactive_pt_rendering([MarshalAs(UnmanagedType.FunctionPtr)]RenderImageCb pDelegate);
 
     void StartMission()
@@ -246,12 +246,18 @@ public class NewBehaviourScript : MonoBehaviour
         Native.Invoke<int, bake_lightmap>(nativeLibraryPtr);
     }
 
-    public void InteractiveRenderCb([MarshalAs(UnmanagedType.LPArray, SizeConst = 16777216/*4096X4096*/)][In]float[] image_array, [MarshalAs(UnmanagedType.I4)] [In]int w, [MarshalAs(UnmanagedType.I4)] [In]int h)
+    public void InteractiveRenderCb(IntPtr image_array, [MarshalAs(UnmanagedType.I4)]int w, [MarshalAs(UnmanagedType.I4)]int h, int type)
     {
-        //Debug.Log(image_array[0]);
-        //float[] native_image_array = new float[w * h * 4];
+        Debug.Log("Result Interactive Image size = " + (w * h));        
+        float[] native_image_array = new float[w * h * 4];
+        Marshal.Copy(image_array, native_image_array, 0, w * h * 4);
         //Byte[] b_data = (Byte[])Convert.ChangeType(image_array, typeof(Byte[]));
         //Marshal.Copy(b_data, 0, native_image_array, w * h * 4);
+        //for(int i = 0; i < w * h * 4; i += 40 * 4)
+        //{
+        //    Debug.Log("r = " + native_image_array[i] + " g = " + native_image_array[i + 1] + " b = " + native_image_array[i + 2] + " a = " + native_image_array[i + 3]);
+        //}
+        Debug.Log("r = " + native_image_array[0] + " g = " + native_image_array[1] + " b = " + native_image_array[2] + " a = " + native_image_array[3]);
     }
 
     void InteractiveRenderStart()
