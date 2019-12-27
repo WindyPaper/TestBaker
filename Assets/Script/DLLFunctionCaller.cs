@@ -7,9 +7,10 @@ using UnityEditor;
 using System.Reflection;
 using System.Threading;
 
-public class DLLFunctionCaller : MonoBehaviour
+public class DLLFunctionCaller
 {
     static IntPtr nativeLibraryPtr;
+    ThreadDispatcher thread_dispatcher = null;
 
     delegate int bake_scene(int number, int multiplyBy);
     delegate bool init_cycles(int w, int h, [MarshalAs(UnmanagedType.LPStr)]string core_type);
@@ -24,6 +25,11 @@ public class DLLFunctionCaller : MonoBehaviour
 
     public delegate void RenderImageCb(IntPtr image_array, [MarshalAs(UnmanagedType.I4)]int w, [MarshalAs(UnmanagedType.I4)]int h, int type);
     delegate int interactive_pt_rendering([MarshalAs(UnmanagedType.FunctionPtr)]RenderImageCb pDelegate);
+
+    public DLLFunctionCaller(ThreadDispatcher thread_dispatcher)
+    {
+        this.thread_dispatcher = thread_dispatcher;
+    }
 
     public void Init()
     {
@@ -50,25 +56,7 @@ public class DLLFunctionCaller : MonoBehaviour
         Native.Invoke<int, release_cycles>(nativeLibraryPtr);
 
         UnloadDLL();
-    }
-
-
-
-    void Awake()
-    {
-        //Debug.Log("Start...");
-
-        //LoadDLL();
-
-        //InitCycles();
-
-        //SendAllMeshToCycles();
-
-        ////BakeLightMap();
-        //InteractiveRenderStart();
-
-        //Debug.Log("Finish...");
-    }
+    }    
 
     void LoadDLL()
     {
@@ -258,15 +246,20 @@ public class DLLFunctionCaller : MonoBehaviour
     {
         Debug.Log("Result Interactive Image size = " + (w * h));        
         float[] native_image_array = new float[w * h * 4];
-        Marshal.Copy(image_array, native_image_array, 0, w * h * 4);
-        //Byte[] b_data = (Byte[])Convert.ChangeType(image_array, typeof(Byte[]));
-        //Marshal.Copy(b_data, 0, native_image_array, w * h * 4);
-        //for(int i = 0; i < w * h * 4; i += 40 * 4)
-        //{
-        //    Debug.Log("r = " + native_image_array[i] + " g = " + native_image_array[i + 1] + " b = " + native_image_array[i + 2] + " a = " + native_image_array[i + 3]);
-        //}
-        Debug.Log("r = " + native_image_array[0] + " g = " + native_image_array[1] + " b = " + native_image_array[2] + " a = " + native_image_array[3]);
-    }
+        Marshal.Copy(image_array, native_image_array, 0, w * h * 4);        
+
+        void local_create_tex_func()
+        {
+            Texture2D pt_tex = new Texture2D(w, h, TextureFormat.RGBAFloat, false);
+            pt_tex.SetPixelData(native_image_array, 0, 0);
+
+            byte[] png_data = pt_tex.EncodeToPNG();
+            System.IO.File.WriteAllBytes("./pt_image.png", png_data);
+            Debug.Log("Save pt_image.png in main thread!");
+        };
+
+        thread_dispatcher.RunOnMainThread(local_create_tex_func);
+    }    
 
     public void InteractiveRenderStart()
     {
@@ -274,10 +267,10 @@ public class DLLFunctionCaller : MonoBehaviour
         Native.Invoke<int, interactive_pt_rendering>(nativeLibraryPtr, cb);
     }
 
-    void Update()
-    {
+    //void Update()
+    //{
        
-    }
+    //}
 
     public static void UnloadDLL()
     {
@@ -293,8 +286,8 @@ public class DLLFunctionCaller : MonoBehaviour
         }
     }
 
-    void OnApplicationQuit()
-    {
+    //void OnApplicationQuit()
+    //{
         
-    }
+    //}
 }

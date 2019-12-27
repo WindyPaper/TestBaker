@@ -19,7 +19,7 @@ public class InteractivePTEditorWindow : ScriptableWizard
     [MenuItem("U-Cycles/RayTracing Preview")]
     static void CreateW()
     {
-        ScriptableWizard.DisplayWizard<InteractivePTEditorWindow>("RayTracingPreview", "Go", "Cancel");        
+        ScriptableWizard.DisplayWizard<InteractivePTEditorWindow>("RayTracingPreview", "Yes", "Cancel");        
     }
 
     string fileName = "";
@@ -32,6 +32,7 @@ public class InteractivePTEditorWindow : ScriptableWizard
     float render_progress = 0.1f;
 
     DLLFunctionCaller dll_function_caller = null;
+    ThreadDispatcher thread_dispatcher = null;
 
     void OnGUI()
     {
@@ -61,8 +62,8 @@ public class InteractivePTEditorWindow : ScriptableWizard
             interactive_rendering = !interactive_rendering;
             if(interactive_rendering)
             {
-                Debug.Log("Interactive Start!");
-                InteractiveRenderingStart();                
+                //Debug.Log("Interactive Start!");                
+                InteractiveRenderingStart();
             }
             else
             {
@@ -119,13 +120,13 @@ public class InteractivePTEditorWindow : ScriptableWizard
         dll_function_caller.SendAllMeshToCycles();
 
         Thread t = new Thread(dll_function_caller.InteractiveRenderStart);
-        //dll_function_caller.InteractiveRenderStart();
         t.Start();
     }
 
     void InteractiveRenderingEnd()
     {
-        dll_function_caller.Release();
+        if(dll_function_caller != null)
+            dll_function_caller.Release();
     }
 
 
@@ -133,13 +134,19 @@ public class InteractivePTEditorWindow : ScriptableWizard
     {
         if (dll_function_caller == null)
         {
-            dll_function_caller = new DLLFunctionCaller();
+            if (thread_dispatcher == null)
+            {
+                thread_dispatcher = ThreadDispatcher.Initialize();
+            }
+
+            dll_function_caller = new DLLFunctionCaller(thread_dispatcher);
         }
     }
 
     void OnDestroy()
     {
-        dll_function_caller.Release();
+        if (dll_function_caller != null)
+            dll_function_caller.Release();
     }
 
     void OnWizardUpdate()
@@ -149,7 +156,15 @@ public class InteractivePTEditorWindow : ScriptableWizard
 
     void OnHierarchyChange()
     {
-        Debug.Log("OnHierarchyChange");
+        //Debug.Log("OnHierarchyChange");
     }
-    
+
+    public void Update()
+    {
+        if (thread_dispatcher != null)
+        {
+            thread_dispatcher.Update();
+        }
+    }
+
 }
