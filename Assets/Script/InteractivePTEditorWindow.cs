@@ -2,7 +2,10 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
+using System;
+using System.Runtime.InteropServices;
 using System.Threading;
+using System.Reflection;
 
 public enum SampleCountOptions
 {
@@ -14,6 +17,17 @@ public enum SampleCountOptions
     GROUND_TRUTH_8192 = 5
 }
 
+[StructLayout(LayoutKind.Sequential)]
+public struct UnityRenderOptions
+{
+    public int width;
+    public int height;
+    public float[] camera_pos;
+    public float[] euler_angle;    
+
+    public int sample_count;
+}
+
 public class InteractivePTEditorWindow : ScriptableWizard
 {
     [MenuItem("U-Cycles/RayTracing Preview")]
@@ -22,14 +36,14 @@ public class InteractivePTEditorWindow : ScriptableWizard
         ScriptableWizard.DisplayWizard<InteractivePTEditorWindow>("RayTracingPreview", "Yes", "Cancel");        
     }
 
-    string fileName = "";
+    static string fileName = "";
     bool interactive_rendering = false;
-    bool select_sceneview_active_camera = true;
-    Camera cam = null;
+    public static bool select_sceneview_active_camera = true;
+    public static Camera cam = null;
     //bool pressed = false;
-    int sample_count = 128;
+    public static int sample_count = 128;
     SampleCountOptions sample_count_op;
-    float render_progress = 0.1f;
+    public static float render_progress = 0.1f;
 
     DLLFunctionCaller dll_function_caller = null;
     ThreadDispatcher thread_dispatcher = null;
@@ -56,34 +70,54 @@ public class InteractivePTEditorWindow : ScriptableWizard
         }
         GUILayout.EndHorizontal();
 
-        //Start Btn
-        if(interactive_rendering != GUILayout.Toggle(interactive_rendering, new GUIContent("Start", "Ray tracing result will be outputed to GameView"), "Button"))
-        {
-            interactive_rendering = !interactive_rendering;
-            if(interactive_rendering)
-            {
-                //Debug.Log("Interactive Start!");                
-                InteractiveRenderingStart();
-            }
-            else
-            {
-                Debug.Log("Interactive Stop!");
-                InteractiveRenderingEnd();                
-            }
-        }        
-
         //Select Camera
+        //cam = null;// UnityEditor.SceneView.lastActiveSceneView.camera;
         select_sceneview_active_camera = GUILayout.Toggle(select_sceneview_active_camera, "Select Sceneview Active Camera: ");
         GUI.enabled = !select_sceneview_active_camera;
         cam = (EditorGUILayout.ObjectField("Select Camera: ", cam, typeof(Camera), true)) as Camera;
         GUI.enabled = true;
+        if(select_sceneview_active_camera)
+        {
+            cam = UnityEditor.SceneView.lastActiveSceneView.camera;
+        }
 
         //Sample count
         sample_count_op = (SampleCountOptions)EditorGUILayout.EnumPopup("Sample Count:", sample_count_op);
+        int select_sample_count = GetSampleCount(sample_count_op);
 
         //Add render status bar of sample progress.
         Rect rect = GUILayoutUtility.GetRect(position.width - 6, 20);
         EditorGUI.ProgressBar(rect, render_progress, "Render Status");
+
+
+        UnityRenderOptions u3d_render_options = new UnityRenderOptions();
+        u3d_render_options.width = cam.pixelWidth;
+        u3d_render_options.height = cam.pixelHeight;
+        u3d_render_options.camera_pos = new float[3];
+        u3d_render_options.camera_pos[0] = cam.transform.position.x;
+        u3d_render_options.camera_pos[1] = cam.transform.position.y;
+        u3d_render_options.camera_pos[2] = cam.transform.position.z;
+        u3d_render_options.euler_angle = new float[3];
+        u3d_render_options.euler_angle[0] = -cam.transform.eulerAngles.x;
+        u3d_render_options.euler_angle[1] = cam.transform.eulerAngles.y;
+        u3d_render_options.euler_angle[2] = cam.transform.eulerAngles.z;
+        u3d_render_options.sample_count = select_sample_count;
+
+        //Start Btn, needed to add bottom after all parameters have inited.
+        if (interactive_rendering != GUILayout.Toggle(interactive_rendering, new GUIContent("Start", "Ray tracing result will be outputed to GameView"), "Button"))
+        {
+            interactive_rendering = !interactive_rendering;
+            if (interactive_rendering)
+            {
+                //Debug.Log("Interactive Start!");                
+                InteractiveRenderingStart(u3d_render_options);
+            }
+            else
+            {
+                //Debug.Log("Interactive Stop!");
+                InteractiveRenderingEnd();
+            }
+        }
     }
 
     int GetSampleCount(SampleCountOptions op)
@@ -113,24 +147,7 @@ public class InteractivePTEditorWindow : ScriptableWizard
         return sample_count;
     }
 
-    void InteractiveRenderingStart()
-    {
-        dll_function_caller.Init();
-
-        dll_function_caller.SendAllMeshToCycles();
-
-        Thread t = new Thread(dll_function_caller.InteractiveRenderStart);
-        t.Start();
-    }
-
-    void InteractiveRenderingEnd()
-    {
-        if(dll_function_caller != null)
-            dll_function_caller.Release();
-    }
-
-
-    public void Awake()
+    void InteractiveRenderingStart(UnityRenderOptions render_options)
     {
         if (dll_function_caller == null)
         {
@@ -141,7 +158,25 @@ public class InteractivePTEditorWindow : ScriptableWizard
 
             dll_function_caller = new DLLFunctionCaller(thread_dispatcher);
         }
+
+        dll_function_caller.Init();
+
+        dll_function_caller.SendAllMeshToCycles();
+
+        Thread t = new Thread(dll_function_caller.InteractiveRenderStart(render_options));
+        t.Start();
     }
+
+    void InteractiveRenderingEnd()
+    {
+        if(dll_function_caller != null)
+            dll_function_caller.Release();
+        dll_function_caller = null;
+    }
+
+    //public void Awake()
+    //{        
+    //}
 
     void OnDestroy()
     {

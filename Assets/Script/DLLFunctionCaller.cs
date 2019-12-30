@@ -24,7 +24,7 @@ public class DLLFunctionCaller
     delegate int bake_lightmap();
 
     public delegate void RenderImageCb(IntPtr image_array, [MarshalAs(UnmanagedType.I4)]int w, [MarshalAs(UnmanagedType.I4)]int h, int type);
-    delegate int interactive_pt_rendering([MarshalAs(UnmanagedType.FunctionPtr)]RenderImageCb pDelegate);
+    delegate int interactive_pt_rendering(UnityRenderOptions ops, [MarshalAs(UnmanagedType.FunctionPtr)]RenderImageCb pDelegate);
 
     public DLLFunctionCaller(ThreadDispatcher thread_dispatcher)
     {
@@ -82,9 +82,11 @@ public class DLLFunctionCaller
 
         //try
         //{
-        Debug.Log("w = "+Screen.width+"h = "+Screen.height);
-        bool result = Native.Invoke<bool, init_cycles>(nativeLibraryPtr, Screen.width, Screen.height, "CPU"); // Should return the number 15.
-        Debug.Log(result);
+        int width = InteractivePTEditorWindow.cam.pixelWidth;
+        int height = InteractivePTEditorWindow.cam.pixelHeight;
+        Debug.Log("w = "+width+"h = "+height);
+        bool result = Native.Invoke<bool, init_cycles>(nativeLibraryPtr, width, height, "CPU");
+        //Debug.Log(result);
         //}
         //catch (System.Exception e)
         //{
@@ -132,11 +134,11 @@ public class DLLFunctionCaller
             foreach (Vector3 vv in m.vertices)
             {
                 Vector3 v = t.TransformPoint(vv);
-                Debug.Log("pos = " + v.x + "  " + v.y + "  " + v.z);
+                //Debug.Log("pos = " + v.x + "  " + v.y + "  " + v.z);
                 //Vector3 v = (vv);
-                vertex_array[numVertices * 4] = -v.x;
+                vertex_array[numVertices * 4] = v.x;
                 vertex_array[numVertices * 4 + 1] = v.y;
-                vertex_array[numVertices * 4 + 2] = -v.z;
+                vertex_array[numVertices * 4 + 2] = v.z;
                 vertex_array[numVertices * 4 + 3] = 1.0f;
 
                 numVertices++;
@@ -148,9 +150,9 @@ public class DLLFunctionCaller
             {
                 Vector3 v = r * nn;
                 //sb.Append(string.Format("vn {0} {1} {2}\n", -v.x, -v.y, v.z));
-                normal_array[numNormal * 4] = -v.x;
+                normal_array[numNormal * 4] = v.x;
                 normal_array[numNormal * 4 + 1] = v.y;
-                normal_array[numNormal * 4 + 2] = -v.z;
+                normal_array[numNormal * 4 + 2] = v.z;
                 normal_array[numNormal * 4 + 3] = 0.0f;
 
                 numNormal++;
@@ -186,7 +188,7 @@ public class DLLFunctionCaller
                 }
             }
             //Debug.Log("Lightmap uv num = " + numLightmapuv);
-            Debug.Log("vertice num = " + numVertices);
+            //Debug.Log("vertice num = " + numVertices);
             if (numLightmapuv != m.uv.Length)
             {
                 Debug.LogError("numLightmapuv != m.uv.Length");
@@ -200,7 +202,7 @@ public class DLLFunctionCaller
             {
                 mat_name[i] = mats[i].name;
                 diffuse_tex_name[i] = Application.dataPath + "/../" + AssetDatabase.GetAssetPath(mats[i].mainTexture);
-                Debug.Log("texture full path = " + Application.dataPath + "/../" + AssetDatabase.GetAssetPath(mats[i].mainTexture));
+                //Debug.Log("texture full path = " + Application.dataPath + "/../" + AssetDatabase.GetAssetPath(mats[i].mainTexture));
             }
 
             //int mat_num = m.subMeshCount;
@@ -261,10 +263,13 @@ public class DLLFunctionCaller
         thread_dispatcher.RunOnMainThread(local_create_tex_func);
     }    
 
-    public void InteractiveRenderStart()
+    public ThreadStart InteractiveRenderStart(UnityRenderOptions ops)
     {
-        RenderImageCb cb = new RenderImageCb(InteractiveRenderCb);
-        Native.Invoke<int, interactive_pt_rendering>(nativeLibraryPtr, cb);
+        return () =>
+        {
+            RenderImageCb cb = new RenderImageCb(InteractiveRenderCb);
+            Native.Invoke<int, interactive_pt_rendering>(nativeLibraryPtr, ops, cb);
+        };
     }
 
     //void Update()
