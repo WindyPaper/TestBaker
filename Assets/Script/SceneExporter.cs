@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class SceneExporter : MonoBehaviour
+public class SceneExporter
 {
     // Start is called before the first frame update
     void Start()

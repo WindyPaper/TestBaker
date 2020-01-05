@@ -98,9 +98,11 @@ public class InteractivePTEditorWindow : ScriptableWizard
         u3d_render_options.camera_pos[1] = cam.transform.position.y;
         u3d_render_options.camera_pos[2] = cam.transform.position.z;
         u3d_render_options.euler_angle = new float[3];
-        u3d_render_options.euler_angle[0] = -cam.transform.eulerAngles.x;
-        u3d_render_options.euler_angle[1] = cam.transform.eulerAngles.y;
-        u3d_render_options.euler_angle[2] = cam.transform.eulerAngles.z;
+        //float rx, ry, rz;
+        //cam.transform.Rotate(rx, ry, rz, Space.World);
+        u3d_render_options.euler_angle[0] = cam.transform.rotation.eulerAngles.x;
+        u3d_render_options.euler_angle[1] = cam.transform.rotation.eulerAngles.y;
+        u3d_render_options.euler_angle[2] = cam.transform.rotation.eulerAngles.z;
         u3d_render_options.sample_count = select_sample_count;
 
         //Start Btn, needed to add bottom after all parameters have inited.
@@ -165,6 +167,9 @@ public class InteractivePTEditorWindow : ScriptableWizard
 
         Thread t = new Thread(dll_function_caller.InteractiveRenderStart(render_options));
         t.Start();
+
+        //Create post effect component on camera
+        Camera.main.gameObject.AddComponent<RaytracingTexShow>();
     }
 
     void InteractiveRenderingEnd()
@@ -172,6 +177,11 @@ public class InteractivePTEditorWindow : ScriptableWizard
         if(dll_function_caller != null)
             dll_function_caller.Release();
         dll_function_caller = null;
+
+        if(Camera.main.gameObject.GetComponent<RaytracingTexShow>())
+        {
+            DestroyImmediate(Camera.main.gameObject.GetComponent<RaytracingTexShow>());
+        }        
     }
 
     //public void Awake()

@@ -252,12 +252,12 @@ public class DLLFunctionCaller
 
         void local_create_tex_func()
         {
-            Texture2D pt_tex = new Texture2D(w, h, TextureFormat.RGBAFloat, false);
-            pt_tex.SetPixelData(native_image_array, 0, 0);
+            RaytracingTexShow.rt_texture = new Texture2D(w, h, TextureFormat.RGBAFloat, false);
+            RaytracingTexShow.rt_texture.SetPixelData(native_image_array, 0, 0);
 
-            byte[] png_data = pt_tex.EncodeToPNG();
-            System.IO.File.WriteAllBytes("./pt_image.png", png_data);
-            Debug.Log("Save pt_image.png in main thread!");
+            //byte[] png_data = RaytracingTexShow.rt_texture.EncodeToPNG();
+            //System.IO.File.WriteAllBytes("./pt_image.png", png_data);
+            //Debug.Log("Save pt_image.png in main thread!");
         };
 
         thread_dispatcher.RunOnMainThread(local_create_tex_func);
