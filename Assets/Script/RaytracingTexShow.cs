@@ -55,17 +55,6 @@ public class RaytracingTexShow : MonoBehaviour
             mtl.SetTexture("_RTTex", rt_texture);
 
             Graphics.Blit(source, destination, mtl);
-
-            //if(last_time == null)
-            //{
-            //    last_time = new DateTime();
-            //}
-            //if (System.DateTime.Now.Second - last_time.Second > 10.0f)
-            //{
-            //    byte[] png_data = rt_texture.EncodeToPNG();
-            //    System.IO.File.WriteAllBytes("./pt_image.png", png_data);
-            //    //Debug.Log("Save pt_image.png in main thread!");
-            //}
         }
     }     
 }

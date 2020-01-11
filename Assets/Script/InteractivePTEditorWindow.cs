@@ -7,25 +7,15 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Reflection;
 
-public enum SampleCountOptions
-{
-    LOW_4 = 0,
-    MEDIUM_128 = 1,
-    HIGH_512 = 2,
-    VERY_HIGH_2048 = 3,
-    ULTRA_HIGH_4096 = 4,
-    GROUND_TRUTH_8192 = 5
-}
-
 [StructLayout(LayoutKind.Sequential)]
 public struct UnityRenderOptions
 {
     public int width;
     public int height;
     public float[] camera_pos;
-    public float[] euler_angle;    
+    public float[] euler_angle;
 
-    public int sample_count;
+    public int sample_count;    
 }
 
 public class InteractivePTEditorWindow : ScriptableWizard
@@ -41,7 +31,8 @@ public class InteractivePTEditorWindow : ScriptableWizard
     public static bool select_sceneview_active_camera = true;
     public static Camera cam = null;
     //bool pressed = false;
-    public static int sample_count = 128;
+    RenderDeviceOptions render_device_op;
+    //public static int sample_count = 128;
     SampleCountOptions sample_count_op;
     public static float render_progress = 0.1f;
 
@@ -81,6 +72,9 @@ public class InteractivePTEditorWindow : ScriptableWizard
             cam = UnityEditor.SceneView.lastActiveSceneView.camera;
         }
 
+        //Render device
+        render_device_op = (RenderDeviceOptions)EditorGUILayout.EnumPopup("Render Device:", render_device_op);        
+
         //Sample count
         sample_count_op = (SampleCountOptions)EditorGUILayout.EnumPopup("Sample Count:", sample_count_op);
         int select_sample_count = GetSampleCount(sample_count_op);
@@ -97,13 +91,18 @@ public class InteractivePTEditorWindow : ScriptableWizard
         u3d_render_options.camera_pos[0] = cam.transform.position.x;
         u3d_render_options.camera_pos[1] = cam.transform.position.y;
         u3d_render_options.camera_pos[2] = cam.transform.position.z;
-        u3d_render_options.euler_angle = new float[3];
-        //float rx, ry, rz;
-        //cam.transform.Rotate(rx, ry, rz, Space.World);
+        u3d_render_options.euler_angle = new float[3];        
         u3d_render_options.euler_angle[0] = cam.transform.rotation.eulerAngles.x;
         u3d_render_options.euler_angle[1] = cam.transform.rotation.eulerAngles.y;
         u3d_render_options.euler_angle[2] = cam.transform.rotation.eulerAngles.z;
         u3d_render_options.sample_count = select_sample_count;
+
+        CyclesInitOptions cycles_init_op = new CyclesInitOptions();
+        cycles_init_op.width = cam.pixelWidth;
+        cycles_init_op.height = cam.pixelHeight;
+        cycles_init_op.render_device = (int)render_device_op;
+        string lib_file_folder = Application.dataPath + "/Plugins/";
+        cycles_init_op.device_working_folder = lib_file_folder;
 
         //Start Btn, needed to add bottom after all parameters have inited.
         if (interactive_rendering != GUILayout.Toggle(interactive_rendering, new GUIContent("Start", "Ray tracing result will be outputed to GameView"), "Button"))
@@ -112,7 +111,7 @@ public class InteractivePTEditorWindow : ScriptableWizard
             if (interactive_rendering)
             {
                 //Debug.Log("Interactive Start!");                
-                InteractiveRenderingStart(u3d_render_options);
+                InteractiveRenderingStart(cycles_init_op, u3d_render_options);
             }
             else
             {
@@ -149,7 +148,7 @@ public class InteractivePTEditorWindow : ScriptableWizard
         return sample_count;
     }
 
-    void InteractiveRenderingStart(UnityRenderOptions render_options)
+    void InteractiveRenderingStart(CyclesInitOptions cycles_init_op, UnityRenderOptions render_options)
     {
         if (dll_function_caller == null)
         {
@@ -161,9 +160,11 @@ public class InteractivePTEditorWindow : ScriptableWizard
             dll_function_caller = new DLLFunctionCaller(thread_dispatcher);
         }
 
-        dll_function_caller.Init();
-
+        dll_function_caller.LoadDLLAndInitCycles(cycles_init_op);
+        
         dll_function_caller.SendAllMeshToCycles();
+
+        dll_function_caller.SendLightsToCycles();
 
         Thread t = new Thread(dll_function_caller.InteractiveRenderStart(render_options));
         t.Start();

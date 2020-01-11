@@ -13,7 +13,7 @@ public class DLLFunctionCaller
     ThreadDispatcher thread_dispatcher = null;
 
     delegate int bake_scene(int number, int multiplyBy);
-    delegate bool init_cycles(int w, int h, [MarshalAs(UnmanagedType.LPStr)]string core_type);
+    delegate bool init_cycles(CyclesInitOptions op);
 
     delegate int release_cycles();
 
@@ -26,24 +26,34 @@ public class DLLFunctionCaller
     public delegate void RenderImageCb(IntPtr image_array, [MarshalAs(UnmanagedType.I4)]int w, [MarshalAs(UnmanagedType.I4)]int h, int type);
     delegate int interactive_pt_rendering(UnityRenderOptions ops, [MarshalAs(UnmanagedType.FunctionPtr)]RenderImageCb pDelegate);
 
+    //add light to Cycles
+    delegate int unity_add_light([MarshalAs(UnmanagedType.LPStr)]string name, float intensity, float radius, float[] color, float[] dir, float[] pos, int type);
+
     public DLLFunctionCaller(ThreadDispatcher thread_dispatcher)
     {
         this.thread_dispatcher = thread_dispatcher;
     }
 
-    public void Init()
-    {
-        Debug.Log("Start...");
+    //public void Init()
+    //{
+    //    Debug.Log("Start...");
 
+    //    LoadDLL();
+
+    //    InitCycles();
+
+    //    //SendAllMeshToCycles();
+
+    //    //BakeLightMap();
+
+    //    Debug.Log("Finish...");
+    //}
+
+    public void LoadDLLAndInitCycles(CyclesInitOptions op)
+    {
         LoadDLL();
 
-        InitCycles();
-
-        //SendAllMeshToCycles();
-
-        //BakeLightMap();
-
-        Debug.Log("Finish...");
+        InitCycles(op);
     }
 
     public void Release()
@@ -77,21 +87,10 @@ public class DLLFunctionCaller
         }
     }
 
-    void InitCycles()
-    {
-
-        //try
-        //{
-        int width = InteractivePTEditorWindow.cam.pixelWidth;
-        int height = InteractivePTEditorWindow.cam.pixelHeight;
-        Debug.Log("w = "+width+"h = "+height);
-        bool result = Native.Invoke<bool, init_cycles>(nativeLibraryPtr, width, height, "CPU");
-        //Debug.Log(result);
-        //}
-        //catch (System.Exception e)
-        //{
-        //Debug.Log(e.Message);            
-        //}
+    void InitCycles(CyclesInitOptions op)
+    {        
+        Debug.Log("w = "+op.width+"h = "+op.height);
+        bool result = Native.Invoke<bool, init_cycles>(nativeLibraryPtr, op);
     }
 
     private static List<MeshFilter> GetAllObjectsInScene()
@@ -246,18 +245,18 @@ public class DLLFunctionCaller
 
     public void InteractiveRenderCb(IntPtr image_array, [MarshalAs(UnmanagedType.I4)]int w, [MarshalAs(UnmanagedType.I4)]int h, int type)
     {
-        Debug.Log("Result Interactive Image size = " + (w * h));        
-        float[] native_image_array = new float[w * h * 4];
-        Marshal.Copy(image_array, native_image_array, 0, w * h * 4);        
+        //Debug.Log("Result Interactive Image size = " + (w * h));
+        int image_byte_size = w * h * 2 * 4;
+        byte[] native_image_array = new byte[image_byte_size];
+        Marshal.Copy(image_array, native_image_array, 0, image_byte_size);        
 
         void local_create_tex_func()
         {
-            RaytracingTexShow.rt_texture = new Texture2D(w, h, TextureFormat.RGBAFloat, false);
+            if (RaytracingTexShow.rt_texture == null || RaytracingTexShow.rt_texture.width != w || RaytracingTexShow.rt_texture.height != h)
+            {
+                RaytracingTexShow.rt_texture = new Texture2D(w, h, TextureFormat.RGBAHalf, false);
+            }            
             RaytracingTexShow.rt_texture.SetPixelData(native_image_array, 0, 0);
-
-            //byte[] png_data = RaytracingTexShow.rt_texture.EncodeToPNG();
-            //System.IO.File.WriteAllBytes("./pt_image.png", png_data);
-            //Debug.Log("Save pt_image.png in main thread!");
         };
 
         thread_dispatcher.RunOnMainThread(local_create_tex_func);
@@ -272,10 +271,40 @@ public class DLLFunctionCaller
         };
     }
 
-    //void Update()
-    //{
-       
-    //}
+    public void SendLightsToCycles()
+    {
+        Light[] lights = ExportLights.Export();
+
+        foreach(Light l in lights)
+        {
+            string name = l.name;
+            float intensity = l.intensity;
+            float radius = 0.01f;
+            if(l.type != LightType.Directional)
+            {
+                radius = l.range;
+            }
+            Color color = l.color;
+            float[] color_f = new float[4];
+            color_f[0] = color.r;
+            color_f[1] = color.g;
+            color_f[2] = color.b;
+            color_f[3] = color.a;
+            float[] dir = new float[4];
+            dir[0] = l.transform.forward.x;
+            dir[1] = l.transform.forward.y;
+            dir[2] = l.transform.forward.z;
+            dir[3] = 0.0f;
+            float[] pos = new float[4];
+            pos[0] = l.transform.position.x;
+            pos[1] = l.transform.position.y;
+            pos[2] = l.transform.position.z;
+            pos[3] = 1.0f;
+
+            Native.Invoke<int, unity_add_light>(nativeLibraryPtr, name, intensity, radius, color_f, dir, pos, l.type);
+        }
+    }
+    
 
     public static void UnloadDLL()
     {
@@ -289,10 +318,5 @@ public class DLLFunctionCaller
         {
             nativeLibraryPtr = IntPtr.Zero;
         }
-    }
-
-    //void OnApplicationQuit()
-    //{
-        
-    //}
+    }    
 }
