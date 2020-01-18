@@ -17,9 +17,7 @@ public class DLLFunctionCaller
 
     delegate int release_cycles();
 
-    delegate int unity_add_mesh(float[] vertex_array, float[] uvs_array, float[] lightmapuvs_array, float[] normal_array, int vertex_num,
-        int[] index_array, int[] mat_index, int triangle_num,
-        [MarshalAs(UnmanagedType.LPStr)]string[] mat_name, [MarshalAs(UnmanagedType.LPStr)]string[] diffuse_tex, int mat_num);
+    delegate int unity_add_mesh(ucCyclesMeshData mesh_data, ucCyclesMtlData[] mtls);
 
     delegate int bake_lightmap();
 
@@ -32,22 +30,7 @@ public class DLLFunctionCaller
     public DLLFunctionCaller(ThreadDispatcher thread_dispatcher)
     {
         this.thread_dispatcher = thread_dispatcher;
-    }
-
-    //public void Init()
-    //{
-    //    Debug.Log("Start...");
-
-    //    LoadDLL();
-
-    //    InitCycles();
-
-    //    //SendAllMeshToCycles();
-
-    //    //BakeLightMap();
-
-    //    Debug.Log("Finish...");
-    //}
+    }    
 
     public void LoadDLLAndInitCycles(CyclesInitOptions op)
     {
@@ -91,151 +74,17 @@ public class DLLFunctionCaller
     {        
         Debug.Log("w = "+op.width+"h = "+op.height);
         bool result = Native.Invoke<bool, init_cycles>(nativeLibraryPtr, op);
-    }
-
-    private static List<MeshFilter> GetAllObjectsInScene()
-    {
-        List<MeshFilter> objectsInScene = new List<MeshFilter>();
-
-        foreach (GameObject go in Resources.FindObjectsOfTypeAll(typeof(GameObject)) as GameObject[])
-        {
-            MeshFilter mf = go.transform.GetComponent<MeshFilter>();
-            if (mf && go.active == true)
-            {
-                Debug.Log(go.name);
-                objectsInScene.Add(mf);
-            }
-        }
-        return objectsInScene;
-    }
+    }    
 
     public void SendAllMeshToCycles()
     {
-        List<MeshFilter> objs = GetAllObjectsInScene();
+        List<ucCyclesMeshMtlData> mesh_mtl_datas = new List<ucCyclesMeshMtlData>();
+        ucExportMesh.ExportCurrSceneMesh(ref mesh_mtl_datas);        
 
-        foreach (MeshFilter mf in objs)
+        foreach(ucCyclesMeshMtlData obj in mesh_mtl_datas)
         {
-            Transform t = mf.transform;
-            Vector3 s = t.localScale;
-            Vector3 p = t.localPosition;
-            Quaternion r = t.localRotation;
-
-
-            int numVertices = 0;
-            Mesh m = mf.sharedMesh;
-            if (!m)
-            {
-                Debug.LogError("No mesh!");
-                continue;
-            }
-
-            float[] vertex_array = new float[m.vertices.Length * 4];
-            foreach (Vector3 vv in m.vertices)
-            {
-                Vector3 v = t.TransformPoint(vv);
-                //Debug.Log("pos = " + v.x + "  " + v.y + "  " + v.z);
-                //Vector3 v = (vv);
-                vertex_array[numVertices * 4] = v.x;
-                vertex_array[numVertices * 4 + 1] = v.y;
-                vertex_array[numVertices * 4 + 2] = v.z;
-                vertex_array[numVertices * 4 + 3] = 1.0f;
-
-                numVertices++;
-            }
-            //sb.Append("\n");
-            int numNormal = 0;
-            float[] normal_array = new float[m.normals.Length * 4];
-            foreach (Vector3 nn in m.normals)
-            {
-                Vector3 v = r * nn;
-                //sb.Append(string.Format("vn {0} {1} {2}\n", -v.x, -v.y, v.z));
-                normal_array[numNormal * 4] = v.x;
-                normal_array[numNormal * 4 + 1] = v.y;
-                normal_array[numNormal * 4 + 2] = v.z;
-                normal_array[numNormal * 4 + 3] = 0.0f;
-
-                numNormal++;
-            }
-            //sb.Append("\n");
-            int numUVs = 0;
-            float[] uvs_array = new float[m.uv.Length * 2];
-            foreach (Vector3 v in m.uv)
-            {
-                //sb.Append(string.Format("vt {0} {1}\n", v.x, v.y));
-                uvs_array[numUVs * 2] = v.x;
-                uvs_array[numUVs * 2 + 1] = v.y;
-
-                numUVs++;
-            }
-
-            float[] lightmapuv_array = new float[m.uv.Length * 2]; //hack 防止没有lightmap崩溃
-            int numLightmapuv = 0;
-            if (m.uv2.Length > 0)
-            {
-                foreach (Vector3 v in m.uv2)
-                {
-                    //sb.Append(string.Format("vt {0} {1}\n", v.x, v.y));
-                    if (v.x > 1.0f || v.x < -0.0001f)
-                    {
-                        Debug.LogError("Uv error!");
-                    }
-
-                    lightmapuv_array[numLightmapuv * 2] = v.x;
-                    lightmapuv_array[numLightmapuv * 2 + 1] = v.y;
-
-                    numLightmapuv++;
-                }
-            }
-            //Debug.Log("Lightmap uv num = " + numLightmapuv);
-            //Debug.Log("vertice num = " + numVertices);
-            if (numLightmapuv != m.uv.Length)
-            {
-                Debug.LogError("numLightmapuv != m.uv.Length");
-            }
-
-            Material[] mats = mf.GetComponent<Renderer>().sharedMaterials;
-            int mat_num = mats.Length;
-            string[] mat_name = new string[mat_num];
-            string[] diffuse_tex_name = new string[mat_num];
-            for (int i = 0; i < mat_num; ++i)
-            {
-                mat_name[i] = mats[i].name;
-                diffuse_tex_name[i] = Application.dataPath + "/../" + AssetDatabase.GetAssetPath(mats[i].mainTexture);
-                //Debug.Log("texture full path = " + Application.dataPath + "/../" + AssetDatabase.GetAssetPath(mats[i].mainTexture));
-            }
-
-            //int mat_num = m.subMeshCount;
-            int triangle_num = 0;
-            for (int material = 0; material < m.subMeshCount; material++)
-            {
-                int[] triangles = m.GetTriangles(material);
-                triangle_num += triangles.Length;
-            }
-
-            int[] index_array = new int[triangle_num * 3];
-            int[] index_mat_array = new int[triangle_num];
-            Debug.Log("triangle_num num = " + triangle_num);
-            int index_i = 0;
-            for (int material = 0; material < m.subMeshCount; material++)
-            {
-                int[] triangles = m.GetTriangles(material);
-
-                for (int i = 0; i < triangles.Length; i += 3)
-                {
-                    //revert wind
-                    index_array[index_i * 3] = triangles[i + 1];
-                    index_array[index_i * 3 + 1] = triangles[i + 2];
-                    index_array[index_i * 3 + 2] = triangles[i + 0];
-                    index_mat_array[index_i] = material;
-
-                    ++index_i;
-                }
-            }
-
-            Native.Invoke<int, unity_add_mesh>(nativeLibraryPtr,
-                vertex_array, uvs_array, lightmapuv_array, normal_array, numVertices,
-                index_array, index_mat_array, triangle_num, mat_name, diffuse_tex_name, mat_num);
-        }
+            Native.Invoke<int, unity_add_mesh>(nativeLibraryPtr, obj.mesh_data, obj.mtl_datas);
+        }                
     }
 
     public void BakeLightMap()
@@ -245,14 +94,16 @@ public class DLLFunctionCaller
 
     public void InteractiveRenderCb(IntPtr image_array, [MarshalAs(UnmanagedType.I4)]int w, [MarshalAs(UnmanagedType.I4)]int h, int type)
     {
-        //Debug.Log("Result Interactive Image size = " + (w * h));
+        Debug.Log("Result Interactive Image size = " + (w * h));
         int image_byte_size = w * h * 2 * 4;
         byte[] native_image_array = new byte[image_byte_size];
         Marshal.Copy(image_array, native_image_array, 0, image_byte_size);        
 
         void local_create_tex_func()
         {
-            if (RaytracingTexShow.rt_texture == null || RaytracingTexShow.rt_texture.width != w || RaytracingTexShow.rt_texture.height != h)
+            if (RaytracingTexShow.rt_texture == null || 
+                RaytracingTexShow.rt_texture.width != w || 
+                RaytracingTexShow.rt_texture.height != h)
             {
                 RaytracingTexShow.rt_texture = new Texture2D(w, h, TextureFormat.RGBAHalf, false);
             }            
@@ -286,9 +137,9 @@ public class DLLFunctionCaller
             }
             Color color = l.color;
             float[] color_f = new float[4];
-            color_f[0] = color.r;
-            color_f[1] = color.g;
-            color_f[2] = color.b;
+            color_f[0] = color.r * 2;
+            color_f[1] = color.g * 2;
+            color_f[2] = color.b * 2;
             color_f[3] = color.a;
             float[] dir = new float[4];
             dir[0] = l.transform.forward.x;
