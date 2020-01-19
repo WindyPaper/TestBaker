@@ -157,7 +157,7 @@ public class ucExportMesh
             
             int numUVs = 0;
             mesh_data.uvs_array = new float[m.uv.Length * 2];
-            foreach (Vector3 v in m.uv)
+            foreach (Vector2 v in m.uv)
             {
                 mesh_data.uvs_array[numUVs * 2] = v.x;
                 mesh_data.uvs_array[numUVs * 2 + 1] = v.y;
@@ -169,7 +169,7 @@ public class ucExportMesh
             int numLightmapuv = 0;
             if (m.uv2.Length > 0)
             {
-                foreach (Vector3 v in m.uv2)
+                foreach (Vector2 v in m.uv2)
                 {
                     if (v.x > 1.0f || v.x < -0.0001f)
                     {

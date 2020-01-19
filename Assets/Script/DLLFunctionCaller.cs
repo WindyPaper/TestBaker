@@ -94,7 +94,7 @@ public class DLLFunctionCaller
 
     public void InteractiveRenderCb(IntPtr image_array, [MarshalAs(UnmanagedType.I4)]int w, [MarshalAs(UnmanagedType.I4)]int h, int type)
     {
-        Debug.Log("Result Interactive Image size = " + (w * h));
+        //Debug.Log("Result Interactive Image size = " + (w * h));
         int image_byte_size = w * h * 2 * 4;
         byte[] native_image_array = new byte[image_byte_size];
         Marshal.Copy(image_array, native_image_array, 0, image_byte_size);        
