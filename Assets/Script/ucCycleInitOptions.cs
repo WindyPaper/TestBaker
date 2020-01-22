@@ -42,5 +42,6 @@ public struct CyclesInitOptions
     public int render_device;
 
     public int work_type; //RENDER / BAKDER
+    public int enable_denoise;
 
 }

@@ -26,40 +26,50 @@ public class InteractivePTEditorWindow : ScriptableWizard
         ScriptableWizard.DisplayWizard<InteractivePTEditorWindow>("RayTracingPreview", "Yes", "Cancel");        
     }
 
-    static string fileName = "";
+    //static string fileName = "";
     bool interactive_rendering = false;
     public static bool select_sceneview_active_camera = true;
+    public static bool enable_denoise = true;
     public static Camera cam = null;
     //bool pressed = false;
     RenderDeviceOptions render_device_op;
     //public static int sample_count = 128;
     SampleCountOptions sample_count_op;
-    public static float render_progress = 0.1f;
+    public static float render_progress = 0.0f;
+
+    DateTime start_time = System.DateTime.Now;
+    TimeSpan offset_time;
+
+    float save_main_camera_far_clip_value = 0.0f;
 
     DLLFunctionCaller dll_function_caller = null;
     ThreadDispatcher thread_dispatcher = null;
 
     void OnGUI()
     {
-
-        fileName = EditorGUILayout.TextField("File Name:", fileName);
-
-        GUILayout.BeginHorizontal("Box");
-        if (GUILayout.Button("SetSaveImagePath"))
+        if(render_progress < 1.0f && interactive_rendering)
         {
-            string path = EditorUtility.OpenFolderPanel("Load png Textures", "", "");
-            Debug.Log("path = " + path);
-            fileName = EditorGUILayout.TextField("File Name:", path);            
+            offset_time = System.DateTime.Now - start_time;            
         }
-        //EditorGUILayout.LabelField("Status: ", status);
+        String time_offset_string = offset_time.ToString(@"hh\:mm\:ss");
+        EditorGUILayout.LabelField("Cost Time:", time_offset_string);
 
-        //GUI.enabled = false;
-        if (GUILayout.Button(new GUIContent("SavePTImage", "Save current ray tracing image")))
-        {
-            Debug.Log("Save image!");
-            
-        }
-        GUILayout.EndHorizontal();
+        //GUILayout.BeginHorizontal("Box");
+        //if (GUILayout.Button("SetSaveImagePath"))
+        //{
+        //    string path = EditorUtility.OpenFolderPanel("Load png Textures", "", "");
+        //    Debug.Log("path = " + path);
+        //    fileName = EditorGUILayout.TextField("File Name:", path);            
+        //}
+        ////EditorGUILayout.LabelField("Status: ", status);
+
+        ////GUI.enabled = false;
+        //if (GUILayout.Button(new GUIContent("SavePTImage", "Save current ray tracing image")))
+        //{
+        //    Debug.Log("Save image!");
+
+        //}
+        //GUILayout.EndHorizontal();
 
         //Select Camera
         //cam = null;// UnityEditor.SceneView.lastActiveSceneView.camera;
@@ -79,10 +89,12 @@ public class InteractivePTEditorWindow : ScriptableWizard
         sample_count_op = (SampleCountOptions)EditorGUILayout.EnumPopup("Sample Count:", sample_count_op);
         int select_sample_count = GetSampleCount(sample_count_op);
 
+        //Denoise
+        enable_denoise = GUILayout.Toggle(enable_denoise, "Enable Denoise");
+
         //Add render status bar of sample progress.
         Rect rect = GUILayoutUtility.GetRect(position.width - 6, 20);
-        EditorGUI.ProgressBar(rect, render_progress, "Render Status");
-
+        EditorGUI.ProgressBar(rect, render_progress, "Render Status:" + (render_progress * 100).ToString("0.00") + "%");
 
         UnityRenderOptions u3d_render_options = new UnityRenderOptions();
         u3d_render_options.width = cam.pixelWidth;
@@ -103,14 +115,17 @@ public class InteractivePTEditorWindow : ScriptableWizard
         cycles_init_op.render_device = (int)render_device_op;
         string lib_file_folder = Application.dataPath + "/Plugins/";
         cycles_init_op.device_working_folder = lib_file_folder;
+        cycles_init_op.enable_denoise = Convert.ToInt32(enable_denoise);
 
         //Start Btn, needed to add bottom after all parameters have inited.
         if (interactive_rendering != GUILayout.Toggle(interactive_rendering, new GUIContent("Start", "Ray tracing result will be outputed to GameView"), "Button"))
         {
             interactive_rendering = !interactive_rendering;
             if (interactive_rendering)
-            {
-                //Debug.Log("Interactive Start!");                
+            {                
+                //Record time
+                start_time = System.DateTime.Now;
+
                 InteractiveRenderingStart(cycles_init_op, u3d_render_options);
             }
             else
@@ -167,10 +182,12 @@ public class InteractivePTEditorWindow : ScriptableWizard
         dll_function_caller.SendLightsToCycles();
 
         Thread t = new Thread(dll_function_caller.InteractiveRenderStart(render_options));
-        t.Start();
+        t.Start();        
 
         //Create post effect component on camera
         Camera.main.gameObject.AddComponent<RaytracingTexShow>();
+        save_main_camera_far_clip_value = Camera.main.farClipPlane;
+        Camera.main.farClipPlane = Camera.main.nearClipPlane + 0.01f;
     }
 
     void InteractiveRenderingEnd()
@@ -182,7 +199,8 @@ public class InteractivePTEditorWindow : ScriptableWizard
         if(Camera.main.gameObject.GetComponent<RaytracingTexShow>())
         {
             DestroyImmediate(Camera.main.gameObject.GetComponent<RaytracingTexShow>());
-        }        
+            Camera.main.farClipPlane = save_main_camera_far_clip_value;
+        }
     }
 
     //public void Awake()

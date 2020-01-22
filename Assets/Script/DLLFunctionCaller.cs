@@ -21,7 +21,7 @@ public class DLLFunctionCaller
 
     delegate int bake_lightmap();
 
-    public delegate void RenderImageCb(IntPtr image_array, [MarshalAs(UnmanagedType.I4)]int w, [MarshalAs(UnmanagedType.I4)]int h, int type);
+    public delegate void RenderImageCb(IntPtr image_array, [MarshalAs(UnmanagedType.I4)]int w, [MarshalAs(UnmanagedType.I4)]int h, int type, float progress);
     delegate int interactive_pt_rendering(UnityRenderOptions ops, [MarshalAs(UnmanagedType.FunctionPtr)]RenderImageCb pDelegate);
 
     //add light to Cycles
@@ -92,13 +92,14 @@ public class DLLFunctionCaller
         Native.Invoke<int, bake_lightmap>(nativeLibraryPtr);
     }
 
-    public void InteractiveRenderCb(IntPtr image_array, [MarshalAs(UnmanagedType.I4)]int w, [MarshalAs(UnmanagedType.I4)]int h, int type)
+    public void InteractiveRenderCb(IntPtr image_array, [MarshalAs(UnmanagedType.I4)]int w, [MarshalAs(UnmanagedType.I4)]int h, int type, float progress)
     {
-        //Debug.Log("Result Interactive Image size = " + (w * h));
+        //Debug.Log("Result Interactive Image size = " + (w * h));        
         int image_byte_size = w * h * 2 * 4;
         byte[] native_image_array = new byte[image_byte_size];
-        Marshal.Copy(image_array, native_image_array, 0, image_byte_size);        
+        Marshal.Copy(image_array, native_image_array, 0, image_byte_size);
 
+        //Debug.Log("progress = " + progress);
         void local_create_tex_func()
         {
             if (RaytracingTexShow.rt_texture == null || 
@@ -108,6 +109,7 @@ public class DLLFunctionCaller
                 RaytracingTexShow.rt_texture = new Texture2D(w, h, TextureFormat.RGBAHalf, false);
             }            
             RaytracingTexShow.rt_texture.SetPixelData(native_image_array, 0, 0);
+            InteractivePTEditorWindow.render_progress = progress;
         };
 
         thread_dispatcher.RunOnMainThread(local_create_tex_func);
@@ -129,12 +131,16 @@ public class DLLFunctionCaller
         foreach(Light l in lights)
         {
             string name = l.name;
-            float intensity = l.intensity;
+            //Debug.Log("name = " + name);
             float radius = 0.01f;
+            float light_value_scale = 1.0f;
             if(l.type != LightType.Directional)
             {
                 radius = l.range;
+                light_value_scale = 20.0f;
             }
+            float intensity = l.intensity * l.bounceIntensity * light_value_scale;
+
             Color color = l.color;
             float[] color_f = new float[4];
             color_f[0] = color.r * 2;

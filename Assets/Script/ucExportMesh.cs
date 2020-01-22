@@ -33,7 +33,7 @@ public struct ucCyclesMtlData
     [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 255)]
     public string normal_tex_name;
 
-    public bool is_transparent;
+    public int is_transparent;
     public float tiling_x, tiling_y;
     public float offset_x, offset_y;
     public float[] diffuse_color;
@@ -56,7 +56,7 @@ public class ucExportMesh
             MeshFilter mf = go.transform.GetComponent<MeshFilter>();
             if (mf && go.active == true)
             {
-                Debug.Log(go.name);
+                //Debug.Log(go.name);
                 objectsInScene.Add(mf);
             }
         }
@@ -81,6 +81,9 @@ public class ucExportMesh
         cycles_mtl.tiling_y = standard_mtl.mainTextureScale.y;
         cycles_mtl.offset_x = standard_mtl.mainTextureOffset.x;
         cycles_mtl.offset_y = standard_mtl.mainTextureOffset.y;
+
+        cycles_mtl.normal_tex_name = Application.dataPath + "/../" + AssetDatabase.GetAssetPath(standard_mtl.GetTexture("_BumpMap"));
+        cycles_mtl.mtl_tex_name = Application.dataPath + "/../" + AssetDatabase.GetAssetPath(standard_mtl.GetTexture("_MetallicGlossMap"));
     }
 
     private static void GetObjectMtls(MeshFilter mf, ref ucCyclesMtlData[] mtls)
@@ -115,9 +118,18 @@ public class ucExportMesh
             ref ucCyclesMtlData[] mtl_datas = ref mesh_mtl_data.mtl_datas;
 
             Transform t = mf.transform;
-            Vector3 s = t.localScale;
-            Vector3 p = t.localPosition;
-            Quaternion r = t.localRotation;
+
+            Vector3 final_scale = t.localScale;
+            Transform parent = t.parent;
+            while (parent != null)
+            {
+                final_scale = Vector3.Scale(final_scale, parent.localScale);
+                parent = parent.parent;
+            }
+
+            //Vector3 local_scale = t.localToWorldMatrix.lossyScale;
+            //Vector3 p = t.localPosition;
+            Quaternion r = t.rotation;
 
 
             int numVertices = 0;
@@ -145,7 +157,11 @@ public class ucExportMesh
             mesh_data.normal_array = new float[m.normals.Length * 4];
             foreach (Vector3 nn in m.normals)
             {
-                Vector3 v = r * nn;
+                //Vector3 v = r * nn;
+                //v = Vector3.Scale(v, final_scale);
+                //v = Vector3.Normalize(v);
+                //Vector4 v = new Vector4(nn.x, nn.y, nn.z, 0.0f);
+                Vector3 v = Matrix4x4.Transpose(t.transform.worldToLocalMatrix).MultiplyVector(nn);
 
                 mesh_data.normal_array[numNormal * 4] = v.x;
                 mesh_data.normal_array[numNormal * 4 + 1] = v.y;
@@ -171,10 +187,10 @@ public class ucExportMesh
             {
                 foreach (Vector2 v in m.uv2)
                 {
-                    if (v.x > 1.0f || v.x < -0.0001f)
-                    {
-                        Debug.LogError("Uv error!");
-                    }
+                    //if (v.x > 1.0f || v.x < -0.0001f)
+                    //{
+                    //    Debug.LogError("Uv error!");
+                    //}
 
                     mesh_data.lightmapuvs_array[numLightmapuv * 2] = v.x;
                     mesh_data.lightmapuvs_array[numLightmapuv * 2 + 1] = v.y;
@@ -208,6 +224,7 @@ public class ucExportMesh
             mesh_data.index_array = new int[mesh_data.triangle_num * 3];
             mesh_data.index_mat_array = new int[mesh_data.triangle_num];
             //Debug.Log("triangle_num num = " + mesh_data.triangle_num);
+            //Debug.Log(string.Format("s.x = {0}, y = {1}, z = {2} ", final_scale.x, final_scale.y, final_scale.z));
             int index_i = 0;
             for (int material = 0; material < m.subMeshCount; material++)
             {
@@ -215,10 +232,20 @@ public class ucExportMesh
 
                 for (int i = 0; i < triangles.Length; i += 3)
                 {
-                    //revert wind
-                    mesh_data.index_array[index_i * 3] = triangles[i + 1];
-                    mesh_data.index_array[index_i * 3 + 1] = triangles[i + 2];
-                    mesh_data.index_array[index_i * 3 + 2] = triangles[i + 0];
+                    if (final_scale.x > 0 && final_scale.y > 0 && final_scale.z > 0)
+                    {
+                        //revert wind
+                        mesh_data.index_array[index_i * 3] = triangles[i + 1];
+                        mesh_data.index_array[index_i * 3 + 1] = triangles[i + 2];
+                        mesh_data.index_array[index_i * 3 + 2] = triangles[i + 0];
+                    }
+                    else
+                    {
+                        //for negative scale value, revert triangle order.
+                        mesh_data.index_array[index_i * 3] = triangles[i + 0];
+                        mesh_data.index_array[index_i * 3 + 1] = triangles[i + 2];
+                        mesh_data.index_array[index_i * 3 + 2] = triangles[i + 1];
+                    }
                     mesh_data.index_mat_array[index_i] = material;
 
                     ++index_i;
