@@ -25,7 +25,7 @@ public class DLLFunctionCaller
     delegate int interactive_pt_rendering(UnityRenderOptions ops, [MarshalAs(UnmanagedType.FunctionPtr)]RenderImageCb pDelegate);
 
     //add light to Cycles
-    delegate int unity_add_light([MarshalAs(UnmanagedType.LPStr)]string name, float intensity, float radius, float[] color, float[] dir, float[] pos, int type);
+    delegate int unity_add_light([MarshalAs(UnmanagedType.LPStr)]string name, float intensity, float radius, float angle, float size_x, float size_y, float[] color, float[] dir, float[] pos, int type);
 
     public DLLFunctionCaller(ThreadDispatcher thread_dispatcher)
     {
@@ -131,21 +131,34 @@ public class DLLFunctionCaller
         foreach(Light l in lights)
         {
             string name = l.name;
-            //Debug.Log("name = " + name);
+            Debug.Log("light name = " + name);
             float radius = 0.01f;
             float light_value_scale = 1.0f;
-            if(l.type != LightType.Directional)
+            float angle = 0.0f;
+            if (l.type == LightType.Point)
             {
-                radius = l.range;
-                light_value_scale = 20.0f;
+                radius = 0.3f;// l.range;
+                light_value_scale = l.range * 1.5f;
+            }
+            else if(l.type == LightType.Spot)
+            {
+                radius = 0.1f;
+                light_value_scale = l.range * 10;
+                angle = l.spotAngle;
+                Debug.Log("light angle = " + angle);
+            }
+            else if(l.type == LightType.Area)
+            {
+                light_value_scale = l.areaSize.x * l.areaSize.y;
             }
             float intensity = l.intensity * l.bounceIntensity * light_value_scale;
+            Debug.Log("light intensity = " + intensity);                     
 
             Color color = l.color;
             float[] color_f = new float[4];
-            color_f[0] = color.r * 2;
-            color_f[1] = color.g * 2;
-            color_f[2] = color.b * 2;
+            color_f[0] = color.r;
+            color_f[1] = color.g;
+            color_f[2] = color.b;
             color_f[3] = color.a;
             float[] dir = new float[4];
             dir[0] = l.transform.forward.x;
@@ -158,7 +171,7 @@ public class DLLFunctionCaller
             pos[2] = l.transform.position.z;
             pos[3] = 1.0f;
 
-            Native.Invoke<int, unity_add_light>(nativeLibraryPtr, name, intensity, radius, color_f, dir, pos, l.type);
+            Native.Invoke<int, unity_add_light>(nativeLibraryPtr, name, intensity, radius, angle, l.areaSize.x, l.areaSize.y, color_f, dir, pos, l.type);
         }
     }
     
