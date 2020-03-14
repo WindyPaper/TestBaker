@@ -14,6 +14,7 @@ public struct UnityRenderOptions
     public int height;
     public float[] camera_pos;
     public float[] euler_angle;
+    public float fov;
 
     public int sample_count;    
 }
@@ -107,6 +108,7 @@ public class InteractivePTEditorWindow : ScriptableWizard
         u3d_render_options.euler_angle[0] = cam.transform.rotation.eulerAngles.x;
         u3d_render_options.euler_angle[1] = cam.transform.rotation.eulerAngles.y;
         u3d_render_options.euler_angle[2] = cam.transform.rotation.eulerAngles.z;
+        u3d_render_options.fov = cam.fieldOfView;
         u3d_render_options.sample_count = select_sample_count;
 
         CyclesInitOptions cycles_init_op = new CyclesInitOptions();
@@ -182,12 +184,21 @@ public class InteractivePTEditorWindow : ScriptableWizard
         dll_function_caller.SendLightsToCycles();
 
         Thread t = new Thread(dll_function_caller.InteractiveRenderStart(render_options));
-        t.Start();        
+        t.Start();
 
         //Create post effect component on camera
-        Camera.main.gameObject.AddComponent<RaytracingTexShow>();
-        save_main_camera_far_clip_value = Camera.main.farClipPlane;
-        Camera.main.farClipPlane = Camera.main.nearClipPlane + 0.01f;
+        Camera addcomponent_cam = null;
+        if(cam != UnityEditor.SceneView.lastActiveSceneView.camera)
+        {
+            addcomponent_cam = cam;
+        }
+        else
+        {
+            addcomponent_cam = Camera.main;
+        }
+        addcomponent_cam.gameObject.AddComponent<RaytracingTexShow>();
+        save_main_camera_far_clip_value = addcomponent_cam.farClipPlane;
+        addcomponent_cam.farClipPlane = addcomponent_cam.nearClipPlane + 0.01f;
     }
 
     void InteractiveRenderingEnd()
@@ -196,10 +207,19 @@ public class InteractivePTEditorWindow : ScriptableWizard
             dll_function_caller.Release();
         dll_function_caller = null;
 
-        if(Camera.main.gameObject.GetComponent<RaytracingTexShow>())
+        Camera addcomponent_cam = null;
+        if (cam != UnityEditor.SceneView.lastActiveSceneView.camera)
         {
-            DestroyImmediate(Camera.main.gameObject.GetComponent<RaytracingTexShow>());
-            Camera.main.farClipPlane = save_main_camera_far_clip_value;
+            addcomponent_cam = cam;
+        }
+        else
+        {
+            addcomponent_cam = Camera.main;
+        }
+        if (addcomponent_cam.gameObject.GetComponent<RaytracingTexShow>())
+        {
+            DestroyImmediate(addcomponent_cam.gameObject.GetComponent<RaytracingTexShow>());
+            addcomponent_cam.farClipPlane = save_main_camera_far_clip_value;
         }
     }
 

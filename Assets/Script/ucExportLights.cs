@@ -40,7 +40,7 @@ public class ucExportLights
         foreach (Light l in lights)
         {
             string name = l.name;
-            Debug.Log("light name = " + name);
+            //Debug.Log("light name = " + name);
             float radius = 0.01f;
             float light_value_scale = 1.0f;
             float angle = 0.0f;
@@ -54,14 +54,14 @@ public class ucExportLights
                 radius = 0.1f;
                 light_value_scale = l.range * 10;
                 angle = l.spotAngle;
-                Debug.Log("light angle = " + angle);
+                //Debug.Log("light angle = " + angle);
             }
             else if (l.type == LightType.Area)
             {
                 light_value_scale = l.areaSize.x * l.areaSize.y;
             }
             float intensity = l.intensity * l.bounceIntensity * light_value_scale;
-            Debug.Log("light intensity = " + intensity);
+            //Debug.Log("light intensity = " + intensity);
 
             Color color = l.color;
             float[] color_f = new float[4];
