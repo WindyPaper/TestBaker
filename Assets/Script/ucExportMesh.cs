@@ -82,8 +82,18 @@ public class ucExportMesh
         cycles_mtl.offset_x = standard_mtl.mainTextureOffset.x;
         cycles_mtl.offset_y = standard_mtl.mainTextureOffset.y;
 
-        cycles_mtl.normal_tex_name = Application.dataPath + "/../" + AssetDatabase.GetAssetPath(standard_mtl.GetTexture("_BumpMap"));
-        cycles_mtl.mtl_tex_name = Application.dataPath + "/../" + AssetDatabase.GetAssetPath(standard_mtl.GetTexture("_MetallicGlossMap"));
+        cycles_mtl.normal_tex_name = "";
+        if(standard_mtl.GetTexture("_BumpMap"))
+        {
+            cycles_mtl.normal_tex_name = Application.dataPath + "/../" + AssetDatabase.GetAssetPath(standard_mtl.GetTexture("_BumpMap"));
+        }
+        
+        cycles_mtl.mtl_tex_name = "";
+        if(standard_mtl.GetTexture("_MetallicGlossMap") != null)
+        {
+            cycles_mtl.mtl_tex_name = Application.dataPath + "/../" + AssetDatabase.GetAssetPath(standard_mtl.GetTexture("_MetallicGlossMap"));
+        }
+        
     }
 
     private static void GetObjectMtls(MeshFilter mf, ref ucCyclesMtlData[] mtls)

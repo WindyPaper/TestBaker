@@ -16,15 +16,24 @@ public struct UnityRenderOptions
     public float[] euler_angle;
     public float fov;
 
-    public int sample_count;    
+    public int sample_count;
+
+    [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 255)]
+    public string hdr_texture_path;
 }
 
 public class InteractivePTEditorWindow : ScriptableWizard
 {
+    private static InteractivePTEditorWindow window_inst = null;
+
     [MenuItem("U-Cycles/RayTracing Preview")]
     static void CreateW()
     {
-        ScriptableWizard.DisplayWizard<InteractivePTEditorWindow>("RayTracingPreview", "Yes", "Cancel");        
+        if(window_inst == null)
+        {
+            window_inst = ScriptableWizard.DisplayWizard<InteractivePTEditorWindow>("RayTracingPreview", "Yes", "Cancel");
+        }
+        window_inst.Focus();
     }
 
     //static string fileName = "";
@@ -42,6 +51,8 @@ public class InteractivePTEditorWindow : ScriptableWizard
     TimeSpan offset_time;
 
     float save_main_camera_far_clip_value = 0.0f;
+
+    public static Cubemap hdr_texture = null;
 
     DLLFunctionCaller dll_function_caller = null;
     ThreadDispatcher thread_dispatcher = null;
@@ -93,6 +104,9 @@ public class InteractivePTEditorWindow : ScriptableWizard
         //Denoise
         enable_denoise = GUILayout.Toggle(enable_denoise, "Enable Denoise");
 
+        //HDR sky light texture
+        hdr_texture = (EditorGUILayout.ObjectField("Select Sky light HDR: ", hdr_texture, typeof(Cubemap), true)) as Cubemap;
+
         //Add render status bar of sample progress.
         Rect rect = GUILayoutUtility.GetRect(position.width - 6, 20);
         EditorGUI.ProgressBar(rect, render_progress, "Render Status:" + (render_progress * 100).ToString("0.00") + "%");
@@ -110,6 +124,7 @@ public class InteractivePTEditorWindow : ScriptableWizard
         u3d_render_options.euler_angle[2] = cam.transform.rotation.eulerAngles.z;
         u3d_render_options.fov = cam.fieldOfView;
         u3d_render_options.sample_count = select_sample_count;
+        u3d_render_options.hdr_texture_path = Application.dataPath + "/../" + AssetDatabase.GetAssetPath(hdr_texture);
 
         CyclesInitOptions cycles_init_op = new CyclesInitOptions();
         cycles_init_op.width = cam.pixelWidth;
@@ -231,6 +246,8 @@ public class InteractivePTEditorWindow : ScriptableWizard
     {
         if (dll_function_caller != null)
             dll_function_caller.Release();
+
+        window_inst = null;
     }
 
     void OnWizardUpdate()

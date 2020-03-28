@@ -44,20 +44,6 @@ public class RaytracingTexShow : MonoBehaviour
         m_Camera = GetComponent<Camera>();
     }
 
-    //DateTime last_time;
-    //void OnRenderImage(RenderTexture source, RenderTexture destination)
-    //{
-    //    //Debug.Log("rt_texture = " + rt_texture);
-
-    //    if(rt_texture != null)
-    //    {
-    //        rt_texture.Apply();
-    //        mtl.SetTexture("_RTTex", rt_texture);
-
-    //        Graphics.Blit(source, destination, mtl);
-    //    }
-    //}
-
     // Will be called from camera after regular rendering is done.
     public void OnPostRender()
     {
