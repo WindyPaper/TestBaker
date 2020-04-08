@@ -124,7 +124,10 @@ public class InteractivePTEditorWindow : ScriptableWizard
         u3d_render_options.euler_angle[2] = cam.transform.rotation.eulerAngles.z;
         u3d_render_options.fov = cam.fieldOfView;
         u3d_render_options.sample_count = select_sample_count;
-        u3d_render_options.hdr_texture_path = Application.dataPath + "/../" + AssetDatabase.GetAssetPath(hdr_texture);
+        if(hdr_texture != null)
+        {
+            u3d_render_options.hdr_texture_path = Application.dataPath + "/../" + AssetDatabase.GetAssetPath(hdr_texture);
+        }        
 
         CyclesInitOptions cycles_init_op = new CyclesInitOptions();
         cycles_init_op.width = cam.pixelWidth;

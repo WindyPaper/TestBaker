@@ -23,12 +23,6 @@ public struct ucLightData
 
 public class ucExportLights
 {
-    //static public Light[] Export()
-    //{
-    //    Light[] lights = GameObject.FindObjectsOfType(typeof(Light)) as Light[];
-
-    //    return lights;
-    //}
 
     static public ucLightData[] Export()
     {

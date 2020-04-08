@@ -67,7 +67,12 @@ public class ucExportMesh
     {
         cycles_mtl.mat_name = standard_mtl.name;
 
-        cycles_mtl.diffuse_tex_name = Application.dataPath + "/../" + AssetDatabase.GetAssetPath(standard_mtl.mainTexture);
+        cycles_mtl.diffuse_tex_name = "";
+        if(standard_mtl.mainTexture)
+        {
+            cycles_mtl.diffuse_tex_name = Application.dataPath + "/../" + AssetDatabase.GetAssetPath(standard_mtl.mainTexture);
+        }
+
         cycles_mtl.diffuse_color = new float[3];
         if (standard_mtl.HasProperty("_Color"))
         {
@@ -75,7 +80,6 @@ public class ucExportMesh
             cycles_mtl.diffuse_color[1] = standard_mtl.color.g;
             cycles_mtl.diffuse_color[2] = standard_mtl.color.b;
         }
-
 
         cycles_mtl.tiling_x = standard_mtl.mainTextureScale.x;
         cycles_mtl.tiling_y = standard_mtl.mainTextureScale.y;
@@ -103,21 +107,14 @@ public class ucExportMesh
 
         mtls = new ucCyclesMtlData[mat_num];
 
-        //string[] mat_name = new string[mat_num];
-        //string[] diffuse_tex_name = new string[mat_num];
         for (int i = 0; i < mat_num; ++i)
         {
-            //mtls[i].mat_name = mats[i].name;
-            //diffuse_tex_name[i] = Application.dataPath + "/../" + AssetDatabase.GetAssetPath(mats[i].mainTexture);
-            //Debug.Log("texture full path = " + Application.dataPath + "/../" + AssetDatabase.GetAssetPath(mats[i].mainTexture));
             StandardToCyclesMtl(ref mtls[i], mats[i]);
         }
     }
 
     public static void ExportCurrSceneMesh(ref List<ucCyclesMeshMtlData> mesh_data_list)
     {
-        //mesh_data_list = new List<ucCyclesMeshMtlData>();
-
         List<MeshFilter> objs = GetAllObjectsInScene();
 
         foreach (MeshFilter mf in objs)
@@ -197,28 +194,13 @@ public class ucExportMesh
             {
                 foreach (Vector2 v in m.uv2)
                 {
-                    //if (v.x > 1.0f || v.x < -0.0001f)
-                    //{
-                    //    Debug.LogError("Uv error!");
-                    //}
-
                     mesh_data.lightmapuvs_array[numLightmapuv * 2] = v.x;
                     mesh_data.lightmapuvs_array[numLightmapuv * 2 + 1] = v.y;
 
                     numLightmapuv++;
                 }
             }
-
-            //Material[] mats = mf.GetComponent<Renderer>().sharedMaterials;
-            //int mat_num = mats.Length;
-            //string[] mat_name = new string[mat_num];
-            //string[] diffuse_tex_name = new string[mat_num];
-            //for (int i = 0; i < mat_num; ++i)
-            //{
-            //    mat_name[i] = mats[i].name;
-            //    diffuse_tex_name[i] = Application.dataPath + "/../" + AssetDatabase.GetAssetPath(mats[i].mainTexture);
-            //    //Debug.Log("texture full path = " + Application.dataPath + "/../" + AssetDatabase.GetAssetPath(mats[i].mainTexture));
-            //}
+           
             Material[] mats = mf.GetComponent<Renderer>().sharedMaterials;
             mesh_data.mtl_num = mats.Length;
             GetObjectMtls(mf, ref mtl_datas);
@@ -233,8 +215,6 @@ public class ucExportMesh
 
             mesh_data.index_array = new int[mesh_data.triangle_num * 3];
             mesh_data.index_mat_array = new int[mesh_data.triangle_num];
-            //Debug.Log("triangle_num num = " + mesh_data.triangle_num);
-            //Debug.Log(string.Format("s.x = {0}, y = {1}, z = {2} ", final_scale.x, final_scale.y, final_scale.z));
             int index_i = 0;
             for (int material = 0; material < m.subMeshCount; material++)
             {

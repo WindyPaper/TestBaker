@@ -72,7 +72,7 @@ public class DLLFunctionCaller
 
     void InitCycles(CyclesInitOptions op)
     {        
-        Debug.Log("w = "+op.width+"h = "+op.height);
+        //Debug.Log("w = "+op.width+"h = "+op.height);
         bool result = Native.Invoke<bool, init_cycles>(nativeLibraryPtr, op);
     }    
 
