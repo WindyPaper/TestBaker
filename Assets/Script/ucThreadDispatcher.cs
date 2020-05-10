@@ -4,7 +4,7 @@ using System;
 using UnityEngine;
 
 
-public class ThreadDispatcher
+public class ucThreadDispatcher
 {
     public void RunOnMainThread(Action action)
     {
@@ -15,12 +15,12 @@ public class ThreadDispatcher
         }
     }
 
-    public static ThreadDispatcher Initialize()
+    public static ucThreadDispatcher Initialize()
     {
         if (_instance == null)
         {
-            Debug.Log("Init ThreadDispatcher Manager!");
-            _instance = new ThreadDispatcher();
+            Debug.Log("Init ucThreadDispatcher Manager!");
+            _instance = new ucThreadDispatcher();
         }
         return _instance;
     }
@@ -44,7 +44,7 @@ public class ThreadDispatcher
         }
     }
 
-    static ThreadDispatcher _instance;
+    static ucThreadDispatcher _instance;
     static volatile bool _queued = false;
     static List<Action> _backlog = new List<Action>(8);
     static List<Action> _actions = new List<Action>(8);

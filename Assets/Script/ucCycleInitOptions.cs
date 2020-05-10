@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 using System.Threading;
 using System.Reflection;
 
-public enum SampleCountOptions
+public enum ucSampleCountOptions
 {
     LOW_4 = 0,
     MEDIUM_128 = 1,
@@ -17,20 +17,20 @@ public enum SampleCountOptions
     GROUND_TRUTH_8192 = 5
 }
 
-public enum RenderDeviceOptions
+public enum ucRenderDeviceOptions
 {
     CUDA = 0,
     CPU = 1
 }
 
-public enum WorkType
+public enum ucWorkType
 {
     RENDER = 0,
     BAKDER = 1
 }
 
 [StructLayout(LayoutKind.Sequential)]
-public struct CyclesInitOptions
+public struct ucCyclesInitOptions
 {
     public int width;
     public int height;

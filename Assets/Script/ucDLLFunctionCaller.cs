@@ -7,13 +7,13 @@ using UnityEditor;
 using System.Reflection;
 using System.Threading;
 
-public class DLLFunctionCaller
+public class ucDLLFunctionCaller
 {
     static IntPtr nativeLibraryPtr;
-    ThreadDispatcher thread_dispatcher = null;
+    ucThreadDispatcher thread_dispatcher = null;
 
     delegate int bake_scene(int number, int multiplyBy);
-    delegate bool init_cycles(CyclesInitOptions op);
+    delegate bool init_cycles(ucCyclesInitOptions op);
 
     delegate int release_cycles();
 
@@ -22,17 +22,17 @@ public class DLLFunctionCaller
     delegate int bake_lightmap();
 
     public delegate void RenderImageCb(IntPtr image_array, [MarshalAs(UnmanagedType.I4)]int w, [MarshalAs(UnmanagedType.I4)]int h, int type, float progress);
-    delegate int interactive_pt_rendering(UnityRenderOptions ops, [MarshalAs(UnmanagedType.FunctionPtr)]RenderImageCb pDelegate);
+    delegate int interactive_pt_rendering(ucUnityRenderOptions ops, [MarshalAs(UnmanagedType.FunctionPtr)]RenderImageCb pDelegate);
 
     //add light to Cycles
     delegate int unity_add_light(ucLightData light_data);
 
-    public DLLFunctionCaller(ThreadDispatcher thread_dispatcher)
+    public ucDLLFunctionCaller(ucThreadDispatcher thread_dispatcher)
     {
         this.thread_dispatcher = thread_dispatcher;
     }    
 
-    public void LoadDLLAndInitCycles(CyclesInitOptions op)
+    public void LoadDLLAndInitCycles(ucCyclesInitOptions op)
     {
         LoadDLL();
 
@@ -46,7 +46,7 @@ public class DLLFunctionCaller
             return;
         }
 
-        Native.Invoke<int, release_cycles>(nativeLibraryPtr);
+        ucNative.Invoke<int, release_cycles>(nativeLibraryPtr);
 
         UnloadDLL();
     }    
@@ -57,39 +57,44 @@ public class DLLFunctionCaller
 
         string dll_path = Application.dataPath + "/Plugins/";
         string dll_file_name = "cycles.dll";
-        Native.LoadLibraryFlags flags = Native.LoadLibraryFlags.LOAD_LIBRARY_SEARCH_DEFAULT_DIRS;
+        ucNative.LoadLibraryFlags flags = ucNative.LoadLibraryFlags.LOAD_LIBRARY_SEARCH_DEFAULT_DIRS;
         string dll_full_name = dll_path + dll_file_name;
-        Native.AddDllDirectory(dll_path);
-        nativeLibraryPtr = Native.LoadLibraryEx(dll_full_name, IntPtr.Zero, flags);
+        ucNative.AddDllDirectory(dll_path);
+        nativeLibraryPtr = ucNative.LoadLibraryEx(dll_full_name, IntPtr.Zero, flags);
 
         if (nativeLibraryPtr == IntPtr.Zero)
         {
             Debug.LogError("Failed to load native library. Path = " + dll_full_name + " Last Error Code = " + Marshal.GetLastWin32Error());
 
-            Debug.Log(Native.GetErrorMessage(Marshal.GetLastWin32Error()));
+            Debug.Log(ucNative.GetErrorMessage(Marshal.GetLastWin32Error()));
         }
     }
 
-    void InitCycles(CyclesInitOptions op)
+    void InitCycles(ucCyclesInitOptions op)
     {        
         //Debug.Log("w = "+op.width+"h = "+op.height);
-        bool result = Native.Invoke<bool, init_cycles>(nativeLibraryPtr, op);
+        bool result = ucNative.Invoke<bool, init_cycles>(nativeLibraryPtr, op);
     }    
 
     public void SendAllMeshToCycles()
     {
         List<ucCyclesMeshMtlData> mesh_mtl_datas = new List<ucCyclesMeshMtlData>();
-        ucExportMesh.ExportCurrSceneMesh(ref mesh_mtl_datas);        
+        ucExportMesh.ExportCurrSceneMesh(ref mesh_mtl_datas);
 
-        foreach(ucCyclesMeshMtlData obj in mesh_mtl_datas)
+        float i = 0;
+        foreach (ucCyclesMeshMtlData obj in mesh_mtl_datas)
         {
-            Native.Invoke<int, unity_add_mesh>(nativeLibraryPtr, obj.mesh_data, obj.mtl_datas);
-        }                
+            EditorUtility.DisplayProgressBar("Sync meshes to Cycles", "Sync meshes to Cycles Progress ", i / mesh_mtl_datas.Count * 100.0f);
+            ucNative.Invoke<int, unity_add_mesh>(nativeLibraryPtr, obj.mesh_data, obj.mtl_datas);
+
+            ++i;
+        }
+        EditorUtility.ClearProgressBar();
     }
 
     public void BakeLightMap()
     {
-        Native.Invoke<int, bake_lightmap>(nativeLibraryPtr);
+        ucNative.Invoke<int, bake_lightmap>(nativeLibraryPtr);
     }
 
     public void InteractiveRenderCb(IntPtr image_array, [MarshalAs(UnmanagedType.I4)]int w, [MarshalAs(UnmanagedType.I4)]int h, int type, float progress)
@@ -102,25 +107,25 @@ public class DLLFunctionCaller
         //Debug.Log("progress = " + progress);
         void local_create_tex_func()
         {
-            if (RaytracingTexShow.rt_texture == null || 
-                RaytracingTexShow.rt_texture.width != w || 
-                RaytracingTexShow.rt_texture.height != h)
+            if (ucRaytracingTexShow.rt_texture == null || 
+                ucRaytracingTexShow.rt_texture.width != w || 
+                ucRaytracingTexShow.rt_texture.height != h)
             {
-                RaytracingTexShow.rt_texture = new Texture2D(w, h, TextureFormat.RGBAHalf, false);
+                ucRaytracingTexShow.rt_texture = new Texture2D(w, h, TextureFormat.RGBAHalf, false);
             }            
-            RaytracingTexShow.rt_texture.SetPixelData(native_image_array, 0, 0);
-            InteractivePTEditorWindow.render_progress = progress;
+            ucRaytracingTexShow.rt_texture.SetPixelData(native_image_array, 0, 0);
+            ucInteractivePTEditorWindow.render_progress = progress;
         };
 
         thread_dispatcher.RunOnMainThread(local_create_tex_func);
     }    
 
-    public ThreadStart InteractiveRenderStart(UnityRenderOptions ops)
+    public ThreadStart InteractiveRenderStart(ucUnityRenderOptions ops)
     {
         return () =>
         {
             RenderImageCb cb = new RenderImageCb(InteractiveRenderCb);
-            Native.Invoke<int, interactive_pt_rendering>(nativeLibraryPtr, ops, cb);
+            ucNative.Invoke<int, interactive_pt_rendering>(nativeLibraryPtr, ops, cb);
         };
     }
 
@@ -130,7 +135,7 @@ public class DLLFunctionCaller
 
         foreach(ucLightData lds in light_datas)
         {            
-            Native.Invoke<int, unity_add_light>(nativeLibraryPtr, lds);
+            ucNative.Invoke<int, unity_add_light>(nativeLibraryPtr, lds);
         }
     }
     
@@ -139,7 +144,7 @@ public class DLLFunctionCaller
     {
         if (nativeLibraryPtr == IntPtr.Zero) return;
 
-        if (Native.FreeLibrary(nativeLibraryPtr) == false)
+        if (ucNative.FreeLibrary(nativeLibraryPtr) == false)
         {
             Debug.LogError("Cycles DLL unloads fail!!");
         }

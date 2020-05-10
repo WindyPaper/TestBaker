@@ -7,7 +7,7 @@ using System;
 using System.Runtime.InteropServices;
 using UnityEngine;
 
-public static class Native
+public static class ucNative
 {
     public static T Invoke<T, T2>(IntPtr library, params object[] pars)
     {

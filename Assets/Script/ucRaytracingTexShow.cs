@@ -8,7 +8,7 @@ using System;
 //#endif
 [ExecuteInEditMode]
 [RequireComponent(typeof(Camera))]
-public class RaytracingTexShow : MonoBehaviour
+public class ucRaytracingTexShow : MonoBehaviour
 {
     protected Camera m_Camera;
     protected Shader shader;
@@ -16,7 +16,7 @@ public class RaytracingTexShow : MonoBehaviour
 
     static public Texture2D rt_texture = null;
 
-    RaytracingTexShow()
+    ucRaytracingTexShow()
     {
         
     }

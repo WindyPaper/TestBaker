@@ -8,7 +8,7 @@ using System.Threading;
 using System.Reflection;
 
 [StructLayout(LayoutKind.Sequential)]
-public struct UnityRenderOptions
+public struct ucUnityRenderOptions
 {
     public int width;
     public int height;
@@ -22,16 +22,16 @@ public struct UnityRenderOptions
     public string hdr_texture_path;
 }
 
-public class InteractivePTEditorWindow : ScriptableWizard
+public class ucInteractivePTEditorWindow : ScriptableWizard
 {
-    private static InteractivePTEditorWindow window_inst = null;
+    private static ucInteractivePTEditorWindow window_inst = null;
 
-    [MenuItem("U-Cycles/RayTracing Preview")]
+    [MenuItem("Tools/U-Cycles/RayTracing Preview")]
     static void CreateW()
     {
         if(window_inst == null)
         {
-            window_inst = ScriptableWizard.DisplayWizard<InteractivePTEditorWindow>("RayTracingPreview", "Yes", "Cancel");
+            window_inst = ScriptableWizard.DisplayWizard<ucInteractivePTEditorWindow>("RayTracingPreview", "Yes", "Cancel");
         }
         window_inst.Focus();
     }
@@ -42,9 +42,9 @@ public class InteractivePTEditorWindow : ScriptableWizard
     public static bool enable_denoise = true;
     public static Camera cam = null;
     //bool pressed = false;
-    RenderDeviceOptions render_device_op;
+    ucRenderDeviceOptions render_device_op;
     //public static int sample_count = 128;
-    SampleCountOptions sample_count_op;
+    ucSampleCountOptions sample_count_op;
     public static float render_progress = 0.0f;
 
     DateTime start_time = System.DateTime.Now;
@@ -54,8 +54,8 @@ public class InteractivePTEditorWindow : ScriptableWizard
 
     public static Cubemap hdr_texture = null;
 
-    DLLFunctionCaller dll_function_caller = null;
-    ThreadDispatcher thread_dispatcher = null;
+    ucDLLFunctionCaller dll_function_caller = null;
+    ucThreadDispatcher thread_dispatcher = null;
 
     void OnGUI()
     {
@@ -95,10 +95,10 @@ public class InteractivePTEditorWindow : ScriptableWizard
         }
 
         //Render device
-        render_device_op = (RenderDeviceOptions)EditorGUILayout.EnumPopup("Render Device:", render_device_op);        
+        render_device_op = (ucRenderDeviceOptions)EditorGUILayout.EnumPopup("Render Device:", render_device_op);        
 
         //Sample count
-        sample_count_op = (SampleCountOptions)EditorGUILayout.EnumPopup("Sample Count:", sample_count_op);
+        sample_count_op = (ucSampleCountOptions)EditorGUILayout.EnumPopup("Sample Count:", sample_count_op);
         int select_sample_count = GetSampleCount(sample_count_op);
 
         //Denoise
@@ -111,7 +111,7 @@ public class InteractivePTEditorWindow : ScriptableWizard
         Rect rect = GUILayoutUtility.GetRect(position.width - 6, 20);
         EditorGUI.ProgressBar(rect, render_progress, "Render Status:" + (render_progress * 100).ToString("0.00") + "%");
 
-        UnityRenderOptions u3d_render_options = new UnityRenderOptions();
+        ucUnityRenderOptions u3d_render_options = new ucUnityRenderOptions();
         u3d_render_options.width = cam.pixelWidth;
         u3d_render_options.height = cam.pixelHeight;
         u3d_render_options.camera_pos = new float[3];
@@ -129,7 +129,7 @@ public class InteractivePTEditorWindow : ScriptableWizard
             u3d_render_options.hdr_texture_path = Application.dataPath + "/../" + AssetDatabase.GetAssetPath(hdr_texture);
         }        
 
-        CyclesInitOptions cycles_init_op = new CyclesInitOptions();
+        ucCyclesInitOptions cycles_init_op = new ucCyclesInitOptions();
         cycles_init_op.width = cam.pixelWidth;
         cycles_init_op.height = cam.pixelHeight;
         cycles_init_op.render_device = (int)render_device_op;
@@ -156,43 +156,43 @@ public class InteractivePTEditorWindow : ScriptableWizard
         }
     }
 
-    int GetSampleCount(SampleCountOptions op)
+    int GetSampleCount(ucSampleCountOptions op)
     {
         int sample_count = 4;
         switch(op)
         {
-            case SampleCountOptions.LOW_4:
+            case ucSampleCountOptions.LOW_4:
                 sample_count = 4;
                 break;
-            case SampleCountOptions.MEDIUM_128:
+            case ucSampleCountOptions.MEDIUM_128:
                 sample_count = 128;
                 break;
-            case SampleCountOptions.HIGH_512:
+            case ucSampleCountOptions.HIGH_512:
                 sample_count = 512;
                 break;
-            case SampleCountOptions.VERY_HIGH_2048:
+            case ucSampleCountOptions.VERY_HIGH_2048:
                 sample_count = 2048;
                 break;
-            case SampleCountOptions.ULTRA_HIGH_4096:
+            case ucSampleCountOptions.ULTRA_HIGH_4096:
                 sample_count = 4096;
                 break;
-            case SampleCountOptions.GROUND_TRUTH_8192:
+            case ucSampleCountOptions.GROUND_TRUTH_8192:
                 sample_count = 8192;
                 break;
         }
         return sample_count;
     }
 
-    void InteractiveRenderingStart(CyclesInitOptions cycles_init_op, UnityRenderOptions render_options)
+    void InteractiveRenderingStart(ucCyclesInitOptions cycles_init_op, ucUnityRenderOptions render_options)
     {
         if (dll_function_caller == null)
         {
             if (thread_dispatcher == null)
             {
-                thread_dispatcher = ThreadDispatcher.Initialize();
+                thread_dispatcher = ucThreadDispatcher.Initialize();
             }
 
-            dll_function_caller = new DLLFunctionCaller(thread_dispatcher);
+            dll_function_caller = new ucDLLFunctionCaller(thread_dispatcher);
         }
 
         dll_function_caller.LoadDLLAndInitCycles(cycles_init_op);
@@ -214,7 +214,7 @@ public class InteractivePTEditorWindow : ScriptableWizard
         {
             addcomponent_cam = Camera.main;
         }
-        addcomponent_cam.gameObject.AddComponent<RaytracingTexShow>();
+        addcomponent_cam.gameObject.AddComponent<ucRaytracingTexShow>();
         save_main_camera_far_clip_value = addcomponent_cam.farClipPlane;
         addcomponent_cam.farClipPlane = addcomponent_cam.nearClipPlane + 0.01f;
     }
@@ -234,9 +234,9 @@ public class InteractivePTEditorWindow : ScriptableWizard
         {
             addcomponent_cam = Camera.main;
         }
-        if (addcomponent_cam.gameObject.GetComponent<RaytracingTexShow>())
+        if (addcomponent_cam.gameObject.GetComponent<ucRaytracingTexShow>())
         {
-            DestroyImmediate(addcomponent_cam.gameObject.GetComponent<RaytracingTexShow>());
+            DestroyImmediate(addcomponent_cam.gameObject.GetComponent<ucRaytracingTexShow>());
             addcomponent_cam.farClipPlane = save_main_camera_far_clip_value;
         }
     }
