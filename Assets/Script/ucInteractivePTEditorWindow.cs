@@ -32,11 +32,11 @@ public class ucInteractivePTEditorWindow : ScriptableWizard
         if(window_inst == null)
         {
             window_inst = ScriptableWizard.DisplayWizard<ucInteractivePTEditorWindow>("RayTracingPreview", "Yes", "Cancel");
+            window_inst.autoRepaintOnSceneChange = true;
         }
         window_inst.Focus();
     }
 
-    //static string fileName = "";
     bool interactive_rendering = false;
     public static bool select_sceneview_active_camera = true;
     public static bool enable_denoise = true;
@@ -64,24 +64,7 @@ public class ucInteractivePTEditorWindow : ScriptableWizard
             offset_time = System.DateTime.Now - start_time;            
         }
         String time_offset_string = offset_time.ToString(@"hh\:mm\:ss");
-        EditorGUILayout.LabelField("Cost Time:", time_offset_string);
-
-        //GUILayout.BeginHorizontal("Box");
-        //if (GUILayout.Button("SetSaveImagePath"))
-        //{
-        //    string path = EditorUtility.OpenFolderPanel("Load png Textures", "", "");
-        //    Debug.Log("path = " + path);
-        //    fileName = EditorGUILayout.TextField("File Name:", path);            
-        //}
-        ////EditorGUILayout.LabelField("Status: ", status);
-
-        ////GUI.enabled = false;
-        //if (GUILayout.Button(new GUIContent("SavePTImage", "Save current ray tracing image")))
-        //{
-        //    Debug.Log("Save image!");
-
-        //}
-        //GUILayout.EndHorizontal();
+        EditorGUILayout.LabelField("Cost Time:", time_offset_string);        
 
         //Select Camera
         //cam = null;// UnityEditor.SceneView.lastActiveSceneView.camera;
@@ -106,6 +89,12 @@ public class ucInteractivePTEditorWindow : ScriptableWizard
 
         //HDR sky light texture
         hdr_texture = (EditorGUILayout.ObjectField("Select Sky light HDR: ", hdr_texture, typeof(Cubemap), true)) as Cubemap;
+
+        //preview_window
+        if (GUILayout.Button(new GUIContent("Open UCRenderPreviewWindow", "Open Preview Window")))
+        {
+            ucPreviewRenderWindow.CreatePreviewWindow(cam.pixelWidth, cam.pixelHeight);
+        }
 
         //Add render status bar of sample progress.
         Rect rect = GUILayoutUtility.GetRect(position.width - 6, 20);
@@ -146,6 +135,7 @@ public class ucInteractivePTEditorWindow : ScriptableWizard
                 //Record time
                 start_time = System.DateTime.Now;
 
+                ucPreviewRenderWindow.CreatePreviewWindow(cam.pixelWidth, cam.pixelHeight);
                 InteractiveRenderingStart(cycles_init_op, u3d_render_options);
             }
             else
@@ -202,48 +192,15 @@ public class ucInteractivePTEditorWindow : ScriptableWizard
         dll_function_caller.SendLightsToCycles();
 
         Thread t = new Thread(dll_function_caller.InteractiveRenderStart(render_options));
-        t.Start();
-
-        //Create post effect component on camera
-        Camera addcomponent_cam = null;
-        if(cam != UnityEditor.SceneView.lastActiveSceneView.camera)
-        {
-            addcomponent_cam = cam;
-        }
-        else
-        {
-            addcomponent_cam = Camera.main;
-        }
-        addcomponent_cam.gameObject.AddComponent<ucRaytracingTexShow>();
-        save_main_camera_far_clip_value = addcomponent_cam.farClipPlane;
-        addcomponent_cam.farClipPlane = addcomponent_cam.nearClipPlane + 0.01f;
+        t.Start();        
     }
 
     void InteractiveRenderingEnd()
     {
         if(dll_function_caller != null)
             dll_function_caller.Release();
-        dll_function_caller = null;
-
-        Camera addcomponent_cam = null;
-        if (cam != UnityEditor.SceneView.lastActiveSceneView.camera)
-        {
-            addcomponent_cam = cam;
-        }
-        else
-        {
-            addcomponent_cam = Camera.main;
-        }
-        if (addcomponent_cam.gameObject.GetComponent<ucRaytracingTexShow>())
-        {
-            DestroyImmediate(addcomponent_cam.gameObject.GetComponent<ucRaytracingTexShow>());
-            addcomponent_cam.farClipPlane = save_main_camera_far_clip_value;
-        }
+        dll_function_caller = null;           
     }
-
-    //public void Awake()
-    //{        
-    //}
 
     void OnDestroy()
     {
@@ -269,6 +226,8 @@ public class ucInteractivePTEditorWindow : ScriptableWizard
         {
             thread_dispatcher.Update();
         }
+
+        Repaint();
     }
 
 }

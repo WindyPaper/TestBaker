@@ -101,19 +101,26 @@ public class ucDLLFunctionCaller
     {
         //Debug.Log("Result Interactive Image size = " + (w * h));        
         int image_byte_size = w * h * 2 * 4;
-        byte[] native_image_array = new byte[image_byte_size];
+        byte[] native_image_array = new byte[image_byte_size];              
+
         Marshal.Copy(image_array, native_image_array, 0, image_byte_size);
+
+        for (int i = 0; i < 3000; ++i)
+        {            
+            native_image_array[i] = 0;
+        }
 
         //Debug.Log("progress = " + progress);
         void local_create_tex_func()
         {
-            if (ucRaytracingTexShow.rt_texture == null || 
-                ucRaytracingTexShow.rt_texture.width != w || 
-                ucRaytracingTexShow.rt_texture.height != h)
+            if (ucPreviewRenderWindow.rt_texture == null ||
+                ucPreviewRenderWindow.rt_texture.width != w ||
+                ucPreviewRenderWindow.rt_texture.height != h)
             {
-                ucRaytracingTexShow.rt_texture = new Texture2D(w, h, TextureFormat.RGBAHalf, false);
-            }            
-            ucRaytracingTexShow.rt_texture.SetPixelData(native_image_array, 0, 0);
+                ucPreviewRenderWindow.rt_texture = new Texture2D(w, h, TextureFormat.RGBAHalf, false);
+            }
+            ucPreviewRenderWindow.rt_texture.SetPixelData(native_image_array, 0, 0);
+            ucPreviewRenderWindow.rt_texture.Apply();
             ucInteractivePTEditorWindow.render_progress = progress;
         };
 
